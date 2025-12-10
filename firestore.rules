@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  // These rules are intentionally permissive for a casual, in-person game.
+  // They are NOT hardened against malicious clients. Tighten before public release.
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if request.resource.data.ownerClientId is string;
+      allow update: if request.resource.data.ownerClientId == resource.data.ownerClientId;
+      allow delete: if resource.data.status == 'lobby';
+    }
+
+    match /rooms/{roomId}/players/{playerId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+  }
+}
