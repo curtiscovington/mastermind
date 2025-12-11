@@ -1,6 +1,7 @@
 import {
   doc,
   increment,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   writeBatch,
@@ -180,44 +181,57 @@ const RoomScreen = () => {
 
     try {
       const roomRef = doc(db, 'rooms', room.id);
-      const updatedTallies = { ...(room.voteTallies ?? {}), [you.id]: choice };
-      const alivePlayers = players.filter((player) => player.alive);
-      const approvals = Object.values(updatedTallies).filter((vote) => vote === 'approve').length;
-      const rejections = Object.values(updatedTallies).filter((vote) => vote === 'reject').length;
-      const majority = Math.floor(alivePlayers.length / 2) + 1;
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
 
-      const updates: Record<string, unknown> = {
-        voteTallies: updatedTallies,
-        updatedAt: serverTimestamp(),
-      };
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
 
-      if (approvals >= majority) {
-        updates.phase = 'enactment';
-        updates.directorId = room.directorCandidateId ?? null;
-        updates.deputyId = room.deputyCandidateId ?? null;
-        updates.previousDirectorId = room.directorCandidateId ?? room.directorId ?? null;
-        updates.instabilityCount = 0;
-        updates.autoEnactment = false;
-      } else if (rejections >= majority || Object.keys(updatedTallies).length >= alivePlayers.length) {
-        const newInstability = (room.instabilityCount ?? 0) + 1;
-        const reachedChaos = newInstability >= 3;
-        const nextDirectorCandidate = getNextDirectorCandidate(
-          room.directorCandidateId ?? room.directorId ?? null,
-          players,
-        );
+        const roomData = snapshot.data();
+        const existingTallies = (roomData.voteTallies ?? {}) as Record<string, VoteChoice>;
+        const updatedTallies = { ...existingTallies, [you.id]: choice };
+        const alivePlayers = players.filter((player) => player.alive);
+        const approvals = Object.values(updatedTallies).filter((vote) => vote === 'approve').length;
+        const rejections = Object.values(updatedTallies).filter((vote) => vote === 'reject').length;
+        const majority = Math.floor(alivePlayers.length / 2) + 1;
 
-        updates.phase = reachedChaos ? 'enactment' : 'nomination';
-        updates.directorCandidateId = nextDirectorCandidate;
-        updates.deputyCandidateId = null;
-        updates.previousDirectorId = room.directorCandidateId ?? room.directorId ?? null;
-        updates.voteTallies = {};
-        updates.instabilityCount = reachedChaos ? 0 : newInstability;
-        updates.autoEnactment = reachedChaos;
-        updates.directorId = null;
-        updates.deputyId = null;
-      }
+        const updates: Record<string, unknown> = {
+          voteTallies: updatedTallies,
+          updatedAt: serverTimestamp(),
+        };
 
-      await updateDoc(roomRef, updates);
+        if (approvals >= majority) {
+          updates.phase = 'enactment';
+          updates.directorId = room.directorCandidateId ?? null;
+          updates.deputyId = room.deputyCandidateId ?? null;
+          updates.previousDirectorId = room.directorCandidateId ?? room.directorId ?? null;
+          updates.instabilityCount = 0;
+          updates.autoEnactment = false;
+        } else if (
+          rejections >= majority ||
+          Object.keys(updatedTallies).length >= alivePlayers.length
+        ) {
+          const newInstability = (room.instabilityCount ?? 0) + 1;
+          const reachedChaos = newInstability >= 3;
+          const nextDirectorCandidate = getNextDirectorCandidate(
+            room.directorCandidateId ?? room.directorId ?? null,
+            players,
+          );
+
+          updates.phase = reachedChaos ? 'enactment' : 'nomination';
+          updates.directorCandidateId = nextDirectorCandidate;
+          updates.deputyCandidateId = null;
+          updates.previousDirectorId = room.directorCandidateId ?? room.directorId ?? null;
+          updates.voteTallies = {};
+          updates.instabilityCount = reachedChaos ? 0 : newInstability;
+          updates.autoEnactment = reachedChaos;
+          updates.directorId = null;
+          updates.deputyId = null;
+        }
+
+        transaction.update(roomRef, updates);
+      });
     } catch (err) {
       console.error(err);
     } finally {
