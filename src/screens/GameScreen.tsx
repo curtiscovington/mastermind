@@ -11,6 +11,10 @@ type Props = {
   onEndGame: () => Promise<void>;
   onNominateDeputy: (deputyId: string) => Promise<void>;
   onSubmitVote: (choice: VoteChoice) => Promise<void>;
+  onDrawPolicies: () => Promise<void>;
+  onDirectorDiscard: (cardIndex: number) => Promise<void>;
+  onDeputyEnact: (cardIndex: number) => Promise<void>;
+  onAutoEnactPolicy: () => Promise<void>;
   busyAction: string | null;
 };
 
@@ -40,6 +44,10 @@ const GameScreen = ({
   onEndGame,
   onNominateDeputy,
   onSubmitVote,
+  onDrawPolicies,
+  onDirectorDiscard,
+  onDeputyEnact,
+  onAutoEnactPolicy,
   busyAction,
 }: Props) => {
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
@@ -74,6 +82,15 @@ const GameScreen = ({
   const hasVoted = you ? Boolean(voteTallies[you.id]) : false;
   const majorityNeeded = Math.floor(alivePlayers.length / 2) + 1;
   const instability = room.instabilityCount ?? 0;
+  const syndicateEnacted = room.syndicatePoliciesEnacted ?? 0;
+  const agencyEnacted = room.agencyPoliciesEnacted ?? 0;
+  const directorHand = room.directorHand ?? [];
+  const deputyHand = room.deputyHand ?? [];
+  const isDirector = you?.id === room.directorId;
+  const isDeputy = you?.id === room.deputyId;
+
+  const formatPolicyLabel = (card: string) =>
+    card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
 
   const handleNominationSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -173,6 +190,28 @@ const GameScreen = ({
         ) : null}
       </div>
 
+      <div className="card">
+        <div className="card-header">
+          <h2>Policy Tracks</h2>
+        </div>
+        <ul className="list">
+          <li className="list-row">
+            <div>
+              <p className="list-title">Syndicate Policies Enacted</p>
+              <p className="muted">Progress toward Mastermind victory.</p>
+            </div>
+            <span className="pill danger">{syndicateEnacted} / 11</span>
+          </li>
+          <li className="list-row">
+            <div>
+              <p className="list-title">Agency Policies Enacted</p>
+              <p className="muted">Progress toward Agency victory.</p>
+            </div>
+            <span className="pill success">{agencyEnacted} / 6</span>
+          </li>
+        </ul>
+      </div>
+
       {room.phase === 'nomination' ? (
         <div className="card">
           <div className="card-header">
@@ -264,15 +303,104 @@ const GameScreen = ({
             <span className="pill neutral">Resolve and advance</span>
           </div>
           {room.autoEnactment ? (
-            <p className="muted">
-              Three failed votes triggered instability. A policy is auto-enacted and the tracker resets.
-            </p>
+            <>
+              <p className="muted">
+                Three failed votes triggered instability. A policy is auto-enacted and the tracker resets.
+              </p>
+              {isOwner ? (
+                <button
+                  className="primary"
+                  onClick={onAutoEnactPolicy}
+                  disabled={busyAction === 'auto-enact'}
+                >
+                  {busyAction === 'auto-enact' ? 'Enacting…' : 'Resolve Auto-Enactment'}
+                </button>
+              ) : (
+                <p className="muted">Waiting for the owner to resolve the auto-enactment.</p>
+              )}
+            </>
           ) : (
-            <p className="muted">
-              Election passed. Director {directorCandidate?.displayName ?? 'Unknown'} and Deputy
-              {' '}
-              {deputyCandidate?.displayName ?? 'Unknown'} may enact a policy at the table.
-            </p>
+            <>
+              <p className="muted">
+                Election passed. Director {directorCandidate?.displayName ?? 'Unknown'} and Deputy{' '}
+                {deputyCandidate?.displayName ?? 'Unknown'} will draw and enact a policy.
+              </p>
+              <div className="stack policy-stack">
+                <div className="card nested-card">
+                  <div className="card-header">
+                    <h3>Director Hand</h3>
+                    <span className="pill neutral">Draw & discard</span>
+                  </div>
+                  {isDirector ? (
+                    directorHand.length === 0 ? (
+                      <button
+                        className="secondary"
+                        onClick={onDrawPolicies}
+                        disabled={busyAction === 'draw'}
+                      >
+                        {busyAction === 'draw' ? 'Drawing…' : 'Draw 3 Policies'}
+                      </button>
+                    ) : (
+                      <ul className="list">
+                        {directorHand.map((card, index) => (
+                          <li key={index} className="list-row">
+                            <div>
+                              <p className="list-title">{formatPolicyLabel(card)}</p>
+                              <p className="muted">Discard one and pass two to the Deputy.</p>
+                            </div>
+                            <button
+                              className="ghost"
+                              onClick={() => onDirectorDiscard(index)}
+                              disabled={busyAction === `director-discard-${index}`}
+                            >
+                              {busyAction === `director-discard-${index}` ? 'Discarding…' : 'Discard'}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  ) : (
+                    <p className="muted">Director is drawing and discarding policies.</p>
+                  )}
+                </div>
+
+                <div className="card nested-card">
+                  <div className="card-header">
+                    <h3>Deputy Hand</h3>
+                    <span className="pill neutral">Discard & enact</span>
+                  </div>
+                  {isDeputy ? (
+                    deputyHand.length === 2 ? (
+                      <ul className="list">
+                        {deputyHand.map((card, index) => (
+                          <li key={index} className="list-row">
+                            <div>
+                              <p className="list-title">{formatPolicyLabel(card)}</p>
+                              <p className="muted">Choose one card to enact; the other is discarded.</p>
+                            </div>
+                            <button
+                              className="primary"
+                              onClick={() => onDeputyEnact(index)}
+                              disabled={busyAction === `deputy-enact-${index}`}
+                            >
+                              {busyAction === `deputy-enact-${index}` ? 'Enacting…' : 'Enact'}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="muted">Waiting for the Director to pass two policies.</p>
+                    )
+                  ) : (
+                    <p className="muted">
+                      {deputyHand.length
+                        ? 'Deputy is selecting which policy to enact.'
+                        : 'Waiting for the Deputy to receive policies.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
           )}
           <p className="muted">Use Next Round after resolving the policy to continue.</p>
         </div>

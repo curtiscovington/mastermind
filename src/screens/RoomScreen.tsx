@@ -13,8 +13,8 @@ import { useClientIdContext } from '../contexts/ClientContext';
 import { usePlayers, useRoom } from '../hooks/useRoomData';
 import LobbyScreen from './LobbyScreen';
 import GameScreen from './GameScreen';
-import { assignRolesToPlayers } from '../utils/game';
-import type { Player, VoteChoice } from '../types';
+import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards } from '../utils/game';
+import type { Player, PolicyCard, VoteChoice } from '../types';
 
 const getNextDirectorCandidate = (
   currentDirectorId: string | null,
@@ -100,6 +100,12 @@ const RoomScreen = () => {
         voteTallies: {},
         instabilityCount: 0,
         autoEnactment: false,
+        policyDeck: buildPolicyDeck(),
+        policyDiscard: [],
+        directorHand: [],
+        deputyHand: [],
+        syndicatePoliciesEnacted: 0,
+        agencyPoliciesEnacted: 0,
         updatedAt: serverTimestamp(),
       });
 
@@ -132,6 +138,8 @@ const RoomScreen = () => {
         voteTallies: {},
         instabilityCount: room.instabilityCount ?? 0,
         autoEnactment: false,
+        directorHand: [],
+        deputyHand: [],
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
@@ -208,6 +216,8 @@ const RoomScreen = () => {
           updates.previousDirectorId = room.directorCandidateId ?? room.directorId ?? null;
           updates.instabilityCount = 0;
           updates.autoEnactment = false;
+          updates.directorHand = [];
+          updates.deputyHand = [];
         } else if (
           rejections >= majority ||
           Object.keys(updatedTallies).length >= alivePlayers.length
@@ -228,9 +238,182 @@ const RoomScreen = () => {
           updates.autoEnactment = reachedChaos;
           updates.directorId = null;
           updates.deputyId = null;
+          updates.directorHand = [];
+          updates.deputyHand = [];
         }
 
         transaction.update(roomRef, updates);
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDrawPolicies = async () => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy('draw');
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        if (roomData.autoEnactment) return;
+
+        const directorHand = (roomData.directorHand ?? []) as PolicyCard[];
+        if (directorHand.length) return;
+
+        const deck = (roomData.policyDeck ?? []) as PolicyCard[];
+        const discard = (roomData.policyDiscard ?? []) as PolicyCard[];
+        const { drawn, deck: remainingDeck, discard: remainingDiscard } = drawPolicyCards(deck, discard, 3);
+
+        if (drawn.length < 3) return;
+
+        transaction.update(roomRef, {
+          policyDeck: remainingDeck,
+          policyDiscard: remainingDiscard,
+          directorHand: drawn,
+          deputyHand: [],
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDirectorDiscard = async (cardIndex: number) => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy(`director-discard-${cardIndex}`);
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        if (roomData.autoEnactment) return;
+
+        const directorHand = (roomData.directorHand ?? []) as PolicyCard[];
+        const discardPile = (roomData.policyDiscard ?? []) as PolicyCard[];
+
+        if (directorHand.length !== 3 || !directorHand[cardIndex]) return;
+
+        const discarded = directorHand[cardIndex];
+        const remainingForDeputy = directorHand.filter((_, idx) => idx !== cardIndex);
+
+        transaction.update(roomRef, {
+          directorHand: [],
+          deputyHand: remainingForDeputy,
+          policyDiscard: [...discardPile, discarded],
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDeputyEnact = async (cardIndex: number) => {
+    if (!room || !you || you.id !== room.deputyId || room.phase !== 'enactment') return;
+    setBusy(`deputy-enact-${cardIndex}`);
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        const deputyHand = (roomData.deputyHand ?? []) as PolicyCard[];
+        const discardPile = (roomData.policyDiscard ?? []) as PolicyCard[];
+
+        if (deputyHand.length !== 2 || !deputyHand[cardIndex]) return;
+
+        const enacted = deputyHand[cardIndex];
+        const discarded = deputyHand[cardIndex === 0 ? 1 : 0];
+
+        transaction.update(roomRef, {
+          deputyHand: [],
+          directorHand: [],
+          policyDiscard: [...discardPile, discarded],
+          syndicatePoliciesEnacted:
+            enacted === 'syndicate'
+              ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
+              : roomData.syndicatePoliciesEnacted ?? 0,
+          agencyPoliciesEnacted:
+            enacted === 'agency'
+              ? (roomData.agencyPoliciesEnacted ?? 0) + 1
+              : roomData.agencyPoliciesEnacted ?? 0,
+          autoEnactment: false,
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleAutoEnactPolicy = async () => {
+    if (!room || !isOwner || room.phase !== 'enactment' || !room.autoEnactment) return;
+    setBusy('auto-enact');
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        if (!roomData.autoEnactment) return;
+
+        const deck = (roomData.policyDeck ?? []) as PolicyCard[];
+        const discard = (roomData.policyDiscard ?? []) as PolicyCard[];
+        const { drawn, deck: remainingDeck, discard: remainingDiscard } = drawPolicyCards(deck, discard, 1);
+        const enacted = drawn[0];
+
+        if (!enacted) return;
+
+        transaction.update(roomRef, {
+          policyDeck: remainingDeck,
+          policyDiscard: remainingDiscard,
+          syndicatePoliciesEnacted:
+            enacted === 'syndicate'
+              ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
+              : roomData.syndicatePoliciesEnacted ?? 0,
+          agencyPoliciesEnacted:
+            enacted === 'agency'
+              ? (roomData.agencyPoliciesEnacted ?? 0) + 1
+              : roomData.agencyPoliciesEnacted ?? 0,
+          deputyHand: [],
+          directorHand: [],
+          autoEnactment: false,
+          updatedAt: serverTimestamp(),
+        });
       });
     } catch (err) {
       console.error(err);
@@ -279,6 +462,10 @@ const RoomScreen = () => {
       onEndGame={handleEndGame}
       onNominateDeputy={handleNominateDeputy}
       onSubmitVote={handleSubmitVote}
+      onDrawPolicies={handleDrawPolicies}
+      onDirectorDiscard={handleDirectorDiscard}
+      onDeputyEnact={handleDeputyEnact}
+      onAutoEnactPolicy={handleAutoEnactPolicy}
       busyAction={busy}
     />
   );

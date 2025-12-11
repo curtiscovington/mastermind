@@ -1,4 +1,4 @@
-import type { Player, Role, Team } from '../types';
+import type { Player, PolicyCard, Role, Team } from '../types';
 
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 6;
@@ -50,6 +50,46 @@ export const shuffle = <T>(items: T[]) => {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+};
+
+export const buildPolicyDeck = (): PolicyCard[] =>
+  shuffle([
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'syndicate',
+    'agency',
+    'agency',
+    'agency',
+    'agency',
+    'agency',
+    'agency',
+  ]);
+
+export const drawPolicyCards = (
+  deck: PolicyCard[],
+  discard: PolicyCard[],
+  count: number,
+): { drawn: PolicyCard[]; deck: PolicyCard[]; discard: PolicyCard[] } => {
+  let availableDeck = [...deck];
+  let availableDiscard = [...discard];
+
+  if (availableDeck.length < count) {
+    availableDeck = shuffle([...availableDeck, ...availableDiscard]);
+    availableDiscard = [];
+  }
+
+  const drawn = availableDeck.slice(0, count);
+  const remainingDeck = availableDeck.slice(count);
+
+  return { drawn, deck: remainingDeck, discard: availableDiscard };
 };
 
 type PlayerAssignment = { playerId: string; role: Role; team: Team; knownTeammateIds: string[] };
