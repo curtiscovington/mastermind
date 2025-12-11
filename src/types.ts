@@ -4,6 +4,8 @@ export type GamePhase = 'lobby' | 'nomination' | 'voting' | 'enactment' | 'finis
 
 export type Role = 'mastermind' | 'syndicate_agent' | 'agency' | null;
 
+export type PolicyCard = 'syndicate' | 'agency';
+
 export type Team = 'syndicate' | 'agency' | null;
 
 export type VoteChoice = 'approve' | 'reject';
@@ -29,6 +31,12 @@ export interface Room {
   voteTallies?: VoteTallies;
   instabilityCount?: number;
   autoEnactment?: boolean;
+  policyDeck?: PolicyCard[];
+  policyDiscard?: PolicyCard[];
+  directorHand?: PolicyCard[];
+  deputyHand?: PolicyCard[];
+  syndicatePoliciesEnacted?: number;
+  agencyPoliciesEnacted?: number;
 }
 
 export interface Player {

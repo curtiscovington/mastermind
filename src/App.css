@@ -253,3 +253,17 @@ button:not(:disabled):active {
   border-bottom: 1px solid #22324d;
   padding-bottom: 0.5rem;
 }
+
+.policy-stack {
+  gap: 0.75rem;
+}
+
+.nested-card {
+  background: #0b1020;
+  border: 1px dashed #223047;
+  box-shadow: none;
+}
+
+.nested-card .card-header {
+  margin-bottom: 0.5rem;
+}
