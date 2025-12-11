@@ -11,8 +11,13 @@ export const generateRoomCode = () => {
   return code;
 };
 
+const MAX_PLAYERS = 10;
+
 export const buildRoleList = (playerCount: number): Role[] => {
   if (playerCount <= 0) return [];
+  if (playerCount > MAX_PLAYERS) {
+    throw new Error(`Cannot assign roles for more than ${MAX_PLAYERS} players`);
+  }
 
   // Based on the rulebook distribution for 5–10 players.
   const distribution: Record<number, { agency: number; syndicateAgents: number }> = {
@@ -53,6 +58,9 @@ const mastermindKnowsTeamThreshold = 6; // With 6 or fewer players, the mastermi
 
 export const assignRolesToPlayers = (players: Player[]): PlayerAssignment[] => {
   const roles = shuffle(buildRoleList(players.length));
+  if (roles.length < players.length) {
+    throw new Error('Not enough roles for the current player count');
+  }
   const assignments: PlayerAssignment[] = [];
 
   players.forEach((player, index) => {
