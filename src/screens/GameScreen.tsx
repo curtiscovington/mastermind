@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Player, Room, VoteChoice } from '../types';
+import type { Player, Room, SyndicatePower, VoteChoice } from '../types';
+import { getUnlockedSyndicatePowers } from '../utils/game';
 
 type Props = {
   room: Room;
@@ -15,6 +16,10 @@ type Props = {
   onDirectorDiscard: (cardIndex: number) => Promise<void>;
   onDeputyEnact: (cardIndex: number) => Promise<void>;
   onAutoEnactPolicy: () => Promise<void>;
+  onInvestigatePlayer: (playerId: string) => Promise<void>;
+  onUseSurveillance: () => Promise<void>;
+  onSpecialElection: (directorId: string) => Promise<void>;
+  onPurgePlayer: (playerId: string) => Promise<void>;
   busyAction: string | null;
 };
 
@@ -35,6 +40,25 @@ const roleLabels: Record<string, string> = {
   agency: 'Agency',
 };
 
+const powerCopy: Record<SyndicatePower, { title: string; description: string }> = {
+  investigate: {
+    title: 'Investigate',
+    description: 'Peek at a player and log whether they align with the Agency or Syndicate.',
+  },
+  surveillance: {
+    title: 'Surveillance',
+    description: 'View the top three policy cards to prepare for the next draw.',
+  },
+  special_election: {
+    title: 'Special Election',
+    description: 'Choose the next Director instead of following the normal order.',
+  },
+  purge: {
+    title: 'Purge',
+    description: 'Eliminate a player from the game immediately.',
+  },
+};
+
 const GameScreen = ({
   room,
   players,
@@ -48,6 +72,10 @@ const GameScreen = ({
   onDirectorDiscard,
   onDeputyEnact,
   onAutoEnactPolicy,
+  onInvestigatePlayer,
+  onUseSurveillance,
+  onSpecialElection,
+  onPurgePlayer,
   busyAction,
 }: Props) => {
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
@@ -88,6 +116,18 @@ const GameScreen = ({
   const deputyHand = room.deputyHand ?? [];
   const isDirector = you?.id === room.directorId;
   const isDeputy = you?.id === room.deputyId;
+  const investigationResults = room.investigationResults ?? {};
+  const surveillancePeek = room.surveillancePeek ?? [];
+  const [investigationTarget, setInvestigationTarget] = useState('');
+  const [specialElectionTarget, setSpecialElectionTarget] = useState('');
+  const [purgeTarget, setPurgeTarget] = useState('');
+  const unlockedPowers = useMemo(
+    () => getUnlockedSyndicatePowers(syndicateEnacted),
+    [syndicateEnacted],
+  );
+  const resolvedPowers = (room.syndicatePowersResolved ?? []) as SyndicatePower[];
+  const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
+  const canUsePowers = isDirector && room.phase === 'enactment' && !room.autoEnactment;
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
@@ -200,7 +240,7 @@ const GameScreen = ({
               <p className="list-title">Syndicate Policies Enacted</p>
               <p className="muted">Progress toward Mastermind victory.</p>
             </div>
-            <span className="pill danger">{syndicateEnacted} / 11</span>
+            <span className="pill danger">{syndicateEnacted} / 6</span>
           </li>
           <li className="list-row">
             <div>
@@ -210,6 +250,184 @@ const GameScreen = ({
             <span className="pill success">{agencyEnacted} / 6</span>
           </li>
         </ul>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Director Powers</h2>
+          <span className="pill neutral">Unlocked via Syndicate thresholds</span>
+        </div>
+        {pendingPowers.length ? (
+          <ul className="list">
+            {pendingPowers.map((power) => (
+              <li key={power} className="list-row">
+                <div>
+                  <p className="list-title">{powerCopy[power]?.title ?? power}</p>
+                  <p className="muted">{powerCopy[power]?.description ?? 'Special power available.'}</p>
+                </div>
+                {power === 'investigate' ? (
+                  canUsePowers ? (
+                    <div className="list-actions">
+                      <select
+                        value={investigationTarget}
+                        onChange={(event) => setInvestigationTarget(event.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          Select target
+                        </option>
+                        {alivePlayers
+                          .filter((player) => player.id !== you?.id)
+                          .map((player) => (
+                            <option key={player.id} value={player.id}>
+                              {player.displayName}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="primary"
+                        onClick={() => investigationTarget && onInvestigatePlayer(investigationTarget)}
+                        disabled={!investigationTarget || busyAction === `investigate-${investigationTarget}`}
+                      >
+                        {busyAction === `investigate-${investigationTarget}` ? 'Investigating…' : 'Investigate'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="pill neutral">Director will resolve</span>
+                  )
+                ) : null}
+                {power === 'surveillance' ? (
+                  canUsePowers ? (
+                    <button
+                      className="secondary"
+                      onClick={onUseSurveillance}
+                      disabled={busyAction === 'surveillance'}
+                    >
+                      {busyAction === 'surveillance' ? 'Revealing…' : 'Reveal Top Policies'}
+                    </button>
+                  ) : (
+                    <span className="pill neutral">Director will resolve</span>
+                  )
+                ) : null}
+                {power === 'special_election' ? (
+                  canUsePowers ? (
+                    <div className="list-actions">
+                      <select
+                        value={specialElectionTarget}
+                        onChange={(event) => setSpecialElectionTarget(event.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          Choose next Director
+                        </option>
+                        {alivePlayers
+                          .filter((player) => player.id !== you?.id)
+                          .map((player) => (
+                            <option key={player.id} value={player.id}>
+                              {player.displayName}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="secondary"
+                        onClick={() => specialElectionTarget && onSpecialElection(specialElectionTarget)}
+                        disabled={
+                          !specialElectionTarget ||
+                          busyAction === `special-election-${specialElectionTarget}`
+                        }
+                      >
+                        {busyAction === `special-election-${specialElectionTarget}`
+                          ? 'Assigning…'
+                          : 'Assign Director'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="pill neutral">Director will resolve</span>
+                  )
+                ) : null}
+                {power === 'purge' ? (
+                  canUsePowers ? (
+                    <div className="list-actions">
+                      <select
+                        value={purgeTarget}
+                        onChange={(event) => setPurgeTarget(event.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          Choose a player to eliminate
+                        </option>
+                        {alivePlayers
+                          .filter((player) => player.id !== you?.id)
+                          .map((player) => (
+                            <option key={player.id} value={player.id}>
+                              {player.displayName}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="danger"
+                        onClick={() => purgeTarget && onPurgePlayer(purgeTarget)}
+                        disabled={busyAction === `purge-${purgeTarget}` || !purgeTarget}
+                      >
+                        {busyAction === `purge-${purgeTarget}` ? 'Eliminating…' : 'Purge Player'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="pill neutral">Director will resolve</span>
+                  )
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No unresolved Director powers at the moment.</p>
+        )}
+
+        {Object.keys(investigationResults).length ? (
+          <div className="stack">
+            <p className="muted">Recorded investigations (visible to Directors).</p>
+            {isDirector ? (
+              <ul className="list">
+                {Object.entries(investigationResults).map(([playerId, result]) => {
+                  const target = players.find((player) => player.id === playerId);
+                  return (
+                    <li key={playerId} className="list-row">
+                      <div>
+                        <p className="list-title">{target?.displayName ?? 'Unknown player'}</p>
+                        <p className="muted">{result === 'agency' ? 'Agency' : 'Syndicate-aligned'}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="muted">Investigations have been logged.</p>
+            )}
+          </div>
+        ) : null}
+
+        {surveillancePeek.length && isDirector ? (
+          <div className="stack">
+            <p className="muted">Top of deck (from Surveillance):</p>
+            <ul className="list">
+              {surveillancePeek.map((card, index) => (
+                <li key={index} className="list-row">
+                  <p className="list-title">{formatPolicyLabel(card)}</p>
+                  <span className="pill neutral">Position {index + 1}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {room.specialElectionDirectorId ? (
+          <p className="muted">
+            Special election in effect. Next Director: {
+              players.find((player) => player.id === room.specialElectionDirectorId)?.displayName ??
+              'Chosen player'
+            }
+          </p>
+        ) : null}
       </div>
 
       {room.phase === 'nomination' ? (

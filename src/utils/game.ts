@@ -1,4 +1,4 @@
-import type { Player, PolicyCard, Role, Team } from '../types';
+import type { Player, PolicyCard, Role, SyndicatePower, Team } from '../types';
 
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 6;
@@ -91,6 +91,18 @@ export const drawPolicyCards = (
 
   return { drawn, deck: remainingDeck, discard: availableDiscard };
 };
+
+const syndicatePowerThresholds: Record<SyndicatePower, number> = {
+  investigate: 1,
+  surveillance: 2,
+  special_election: 3,
+  purge: 4,
+};
+
+export const getUnlockedSyndicatePowers = (enactedCount: number): SyndicatePower[] =>
+  (Object.entries(syndicatePowerThresholds) as [SyndicatePower, number][]) // explicit typing for TS
+    .filter(([, threshold]) => enactedCount >= threshold)
+    .map(([power]) => power);
 
 type PlayerAssignment = { playerId: string; role: Role; team: Team; knownTeammateIds: string[] };
 
