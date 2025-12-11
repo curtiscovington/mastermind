@@ -13,6 +13,7 @@ export const ClientIdProvider = ({
   return <ClientIdContext.Provider value={clientId}>{children}</ClientIdContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useClientIdContext = () => {
   const context = useContext(ClientIdContext);
 
