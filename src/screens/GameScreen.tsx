@@ -11,14 +11,20 @@ type Props = {
 };
 
 const roleCopy: Record<string, string> = {
-  mastermind: 'You are THE MASTERMIND. Stay hidden and manipulate.',
-  agent: 'You are an Agent working with the Mastermind.',
-  civilian: 'You are a Civilian. Find the Mastermind.',
+  mastermind: 'You are the MASTERMIND. Steer the Syndicate to victory.',
+  syndicate_agent: 'You are a Syndicate Agent working with the Mastermind.',
+  agency: 'You are Agency. Expose the Mastermind.',
 };
 
 const teamCopy: Record<string, string> = {
-  mastermind: 'Mastermind Team',
-  resistance: 'Resistance',
+  syndicate: 'Syndicate',
+  agency: 'Agency',
+};
+
+const roleLabels: Record<string, string> = {
+  mastermind: 'Mastermind',
+  syndicate_agent: 'Syndicate Agent',
+  agency: 'Agency',
 };
 
 const GameScreen = ({
@@ -68,7 +74,7 @@ const GameScreen = ({
                   <li key={player.id} className="list-row">
                     <div>
                       <p className="list-title">{player.displayName}</p>
-                      <p className="muted">{player.role === 'agent' ? 'Agent' : 'Mastermind'}</p>
+                      <p className="muted">{roleLabels[player.role ?? ''] ?? 'Unknown'}</p>
                     </div>
                     <span className={player.alive ? 'pill success' : 'pill danger'}>
                       {player.alive ? 'Alive' : 'Eliminated'}
@@ -102,7 +108,7 @@ const GameScreen = ({
                     <span className="pill neutral">
                       {player.team ? teamCopy[player.team] ?? player.team : 'Unknown Team'}
                     </span>
-                    <span className="pill neutral">{player.role ?? 'Unknown'}</span>
+                    <span className="pill neutral">{player.role ? roleLabels[player.role] ?? player.role : 'Unknown'}</span>
                   </>
                 ) : null}
                 <span className={player.alive ? 'pill success' : 'pill danger'}>
