@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'mastermindClientId';
 
@@ -10,21 +10,21 @@ const createId = () => {
   return `client-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 };
 
+const getStoredId = () => {
+  if (typeof window === 'undefined') return null;
+
+  let stored = window.localStorage.getItem(STORAGE_KEY);
+
+  if (!stored) {
+    stored = createId();
+    window.localStorage.setItem(STORAGE_KEY, stored);
+  }
+
+  return stored;
+};
+
 export const useClientId = () => {
-  const [clientId, setClientId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    let stored = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!stored) {
-      stored = createId();
-      window.localStorage.setItem(STORAGE_KEY, stored);
-    }
-
-    setClientId(stored);
-  }, []);
+  const [clientId] = useState<string | null>(getStoredId);
 
   return clientId;
 };

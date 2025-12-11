@@ -11,26 +11,33 @@ export const generateRoomCode = () => {
   return code;
 };
 
+const MAX_PLAYERS = 10;
+
 export const buildRoleList = (playerCount: number): Role[] => {
   if (playerCount <= 0) return [];
-
-  // Based on Secret Hitler distribution: increase mastermind-aligned agents as the player count grows.
-  let mastermindTeamSize = 2; // mastermind + 1 agent at the minimum size
-  if (playerCount >= 7 && playerCount <= 8) {
-    mastermindTeamSize = 3; // mastermind + 2 agents
-  } else if (playerCount >= 9) {
-    mastermindTeamSize = 4; // mastermind + 3 agents
+  if (playerCount > MAX_PLAYERS) {
+    throw new Error(`Cannot assign roles for more than ${MAX_PLAYERS} players`);
   }
 
-  const agents = Math.max(mastermindTeamSize - 1, 0);
-  const civilians = Math.max(playerCount - mastermindTeamSize, 0);
+  // Based on the rulebook distribution for 5–10 players.
+  const distribution: Record<number, { agency: number; syndicateAgents: number }> = {
+    5: { agency: 3, syndicateAgents: 1 },
+    6: { agency: 4, syndicateAgents: 1 },
+    7: { agency: 4, syndicateAgents: 2 },
+    8: { agency: 5, syndicateAgents: 2 },
+    9: { agency: 6, syndicateAgents: 2 },
+    10: { agency: 6, syndicateAgents: 3 },
+  };
+
+  const breakdown = distribution[playerCount];
+  if (!breakdown) return [];
 
   const roles: Role[] = ['mastermind'];
-  for (let i = 0; i < agents; i += 1) {
-    roles.push('agent');
+  for (let i = 0; i < breakdown.syndicateAgents; i += 1) {
+    roles.push('syndicate_agent');
   }
-  for (let i = 0; i < civilians; i += 1) {
-    roles.push('civilian');
+  for (let i = 0; i < breakdown.agency; i += 1) {
+    roles.push('agency');
   }
 
   return roles;
@@ -51,28 +58,33 @@ const mastermindKnowsTeamThreshold = 6; // With 6 or fewer players, the mastermi
 
 export const assignRolesToPlayers = (players: Player[]): PlayerAssignment[] => {
   const roles = shuffle(buildRoleList(players.length));
+  if (roles.length < players.length) {
+    throw new Error('Not enough roles for the current player count');
+  }
   const assignments: PlayerAssignment[] = [];
 
   players.forEach((player, index) => {
-    const role = roles[index] ?? 'civilian';
-    const team: Team = role === 'mastermind' || role === 'agent' ? 'mastermind' : 'resistance';
+    const role = roles[index] ?? 'agency';
+    const team: Team = role === 'agency' ? 'agency' : 'syndicate';
     assignments.push({ playerId: player.id, role, team, knownTeammateIds: [] });
   });
 
   const mastermind = assignments.find((assignment) => assignment.role === 'mastermind');
-  const agents = assignments.filter((assignment) => assignment.role === 'agent');
+  const syndicateAgents = assignments.filter((assignment) => assignment.role === 'syndicate_agent');
   const mastermindShouldKnowTeam = players.length <= mastermindKnowsTeamThreshold;
 
-  // Agents know each other and the mastermind. The mastermind may or may not know the agents
+  // Syndicate agents know each other and the mastermind. The mastermind may or may not know the agents
   // depending on player count (to mirror Secret Hitler's knowledge rules).
   assignments.forEach((assignment) => {
     if (assignment.role === 'mastermind') {
       assignment.knownTeammateIds = mastermindShouldKnowTeam
-        ? agents.map((agent) => agent.playerId)
+        ? syndicateAgents.map((agent) => agent.playerId)
         : [];
-    } else if (assignment.role === 'agent') {
+    } else if (assignment.role === 'syndicate_agent') {
       assignment.knownTeammateIds = [
-        ...agents.filter((agent) => agent.playerId !== assignment.playerId).map((agent) => agent.playerId),
+        ...syndicateAgents
+          .filter((agent) => agent.playerId !== assignment.playerId)
+          .map((agent) => agent.playerId),
         ...(mastermind ? [mastermind.playerId] : []),
       ];
     }

@@ -11,6 +11,8 @@ type Props = {
 const LobbyScreen = ({ room, players, clientId, onStartGame, starting }: Props) => {
   const isOwner = room.ownerClientId === clientId;
   const minPlayers = room.minPlayers ?? 5;
+  const maxPlayers = room.maxPlayers ?? 10;
+  const hasTooManyPlayers = players.length > maxPlayers;
 
   return (
     <div className="screen">
@@ -44,12 +46,17 @@ const LobbyScreen = ({ room, players, clientId, onStartGame, starting }: Props) 
         {isOwner ? (
           <div className="stack">
             <p className="muted">
-              Minimum players: {minPlayers}. Agents join the Mastermind team as the group grows; at 7+
-              players, the Mastermind will not know their allies.
+              Minimum players: {minPlayers}. Maximum players: {maxPlayers}. Syndicate Agents join the
+              Mastermind as the group grows; at 7+ players, the Mastermind may not know their agents.
             </p>
+            {hasTooManyPlayers ? (
+              <p className="error">Too many players — remove {players.length - maxPlayers} to start.</p>
+            ) : null}
             <button
               className="primary"
-              disabled={starting || players.length < minPlayers}
+              disabled={
+                starting || players.length < minPlayers || hasTooManyPlayers
+              }
               onClick={onStartGame}
             >
               {starting ? 'Assigning roles…' : 'Start Game (Assign Roles)'}

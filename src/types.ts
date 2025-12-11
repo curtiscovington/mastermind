@@ -1,8 +1,8 @@
 export type GameStatus = 'lobby' | 'in_progress' | 'finished';
 
-export type Role = 'mastermind' | 'agent' | 'civilian' | null;
+export type Role = 'mastermind' | 'syndicate_agent' | 'agency' | null;
 
-export type Team = 'mastermind' | 'resistance' | null;
+export type Team = 'syndicate' | 'agency' | null;
 
 export interface Room {
   id: string;
