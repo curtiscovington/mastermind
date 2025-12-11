@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mastermind-cache-v1';
-const ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE_NAME = 'mastermind-cache-v2';
+const ASSETS = ['/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -18,6 +18,20 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // Always go to the network first for HTML to avoid serving stale bundles after new builds.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          return response;
+        })
+        .catch(() => caches.match('/index.html')),
+    );
     return;
   }
 
