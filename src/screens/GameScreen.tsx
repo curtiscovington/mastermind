@@ -677,7 +677,11 @@ const GameScreen = ({
             >
               {busyAction === 'round' ? 'Advancing…' : 'Next Round'}
             </button>
-            <button className="danger" onClick={onEndGame} disabled={busyAction === 'end'}>
+            <button
+              className="danger"
+              onClick={onEndGame}
+              disabled={busyAction === 'end' || room.status === 'finished'}
+            >
               {busyAction === 'end' ? 'Ending…' : 'End Game'}
             </button>
           </div>

@@ -43,6 +43,8 @@ const RoomScreen = () => {
   const { players, loading: playersLoading } = usePlayers(roomId ?? '');
   const [busy, setBusy] = useState<string | null>(null);
 
+  const isFinished = room?.status === 'finished';
+
   const isOwner = useMemo(
     () => (room ? room.ownerClientId === clientId : false),
     [clientId, room],
@@ -74,7 +76,7 @@ const RoomScreen = () => {
   }
 
   const handleStartGame = async () => {
-    if (!room || !isOwner || players.length === 0) return;
+    if (!room || !isOwner || players.length === 0 || isFinished) return;
     setBusy('start');
 
     try {
@@ -122,7 +124,7 @@ const RoomScreen = () => {
   };
 
   const handleNextRound = async () => {
-    if (!room || !isOwner) return;
+    if (!room || !isOwner || isFinished) return;
     setBusy('round');
 
     try {
@@ -161,7 +163,7 @@ const RoomScreen = () => {
   };
 
   const handleToggleAlive = async (player: Player) => {
-    if (!room || !isOwner) return;
+    if (!room || !isOwner || isFinished) return;
     setBusy(player.id);
 
     try {
@@ -175,7 +177,7 @@ const RoomScreen = () => {
   };
 
   const handleNominateDeputy = async (deputyId: string) => {
-    if (!room || !you || you.id !== room.directorCandidateId) return;
+    if (!room || !you || you.id !== room.directorCandidateId || isFinished) return;
     setBusy('nominate');
 
     try {
@@ -195,7 +197,7 @@ const RoomScreen = () => {
   };
 
   const handleSubmitVote = async (choice: VoteChoice) => {
-    if (!room || !you || !you.alive || room.phase !== 'voting') return;
+    if (!room || !you || !you.alive || room.phase !== 'voting' || isFinished) return;
     setBusy('vote');
 
     try {
@@ -229,6 +231,22 @@ const RoomScreen = () => {
           updates.autoEnactment = false;
           updates.directorHand = [];
           updates.deputyHand = [];
+
+          if (
+            roomData.syndicatePoliciesEnacted >= 3 &&
+            roomData.deputyCandidateId
+          ) {
+            const deputyRef = doc(db, 'rooms', room.id, 'players', roomData.deputyCandidateId);
+            const deputySnap = await transaction.get(deputyRef);
+
+            if (deputySnap.exists()) {
+              const deputyData = deputySnap.data() as Player;
+              if (deputyData.role === 'mastermind') {
+                updates.status = 'finished';
+                updates.phase = 'finished';
+              }
+            }
+          }
         } else if (
           rejections >= majority ||
           Object.keys(updatedTallies).length >= alivePlayers.length
@@ -263,7 +281,8 @@ const RoomScreen = () => {
   };
 
   const handleDrawPolicies = async () => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy('draw');
 
     try {
@@ -304,7 +323,8 @@ const RoomScreen = () => {
   };
 
   const handleDirectorDiscard = async (cardIndex: number) => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy(`director-discard-${cardIndex}`);
 
     try {
@@ -342,7 +362,8 @@ const RoomScreen = () => {
   };
 
   const handleDeputyEnact = async (cardIndex: number) => {
-    if (!room || !you || you.id !== room.deputyId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.deputyId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy(`deputy-enact-${cardIndex}`);
 
     try {
@@ -363,21 +384,30 @@ const RoomScreen = () => {
         const enacted = deputyHand[cardIndex];
         const discarded = deputyHand[cardIndex === 0 ? 1 : 0];
 
-        transaction.update(roomRef, {
+        const updatedSyndicatePolicies =
+          enacted === 'syndicate'
+            ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
+            : roomData.syndicatePoliciesEnacted ?? 0;
+        const updatedAgencyPolicies =
+          enacted === 'agency'
+            ? (roomData.agencyPoliciesEnacted ?? 0) + 1
+            : roomData.agencyPoliciesEnacted ?? 0;
+
+        const updates: Record<string, unknown> = {
           deputyHand: [],
           directorHand: [],
           policyDiscard: [...discardPile, discarded],
-          syndicatePoliciesEnacted:
-            enacted === 'syndicate'
-              ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
-              : roomData.syndicatePoliciesEnacted ?? 0,
-          agencyPoliciesEnacted:
-            enacted === 'agency'
-              ? (roomData.agencyPoliciesEnacted ?? 0) + 1
-              : roomData.agencyPoliciesEnacted ?? 0,
+          syndicatePoliciesEnacted: updatedSyndicatePolicies,
+          agencyPoliciesEnacted: updatedAgencyPolicies,
           autoEnactment: false,
           updatedAt: serverTimestamp(),
-        });
+
+          ...(updatedAgencyPolicies >= 5 || updatedSyndicatePolicies >= 6
+            ? { status: 'finished', phase: 'finished' }
+            : {}),
+        };
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -387,7 +417,8 @@ const RoomScreen = () => {
   };
 
   const handleInvestigatePlayer = async (playerId: string) => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy(`investigate-${playerId}`);
 
     try {
@@ -431,7 +462,8 @@ const RoomScreen = () => {
   };
 
   const handleSurveillance = async () => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy('surveillance');
 
     try {
@@ -470,7 +502,8 @@ const RoomScreen = () => {
   };
 
   const handleSpecialElection = async (directorId: string) => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy(`special-election-${directorId}`);
 
     try {
@@ -517,7 +550,8 @@ const RoomScreen = () => {
   };
 
   const handlePurgePlayer = async (playerId: string) => {
-    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
     setBusy(`purge-${playerId}`);
 
     try {
@@ -548,11 +582,19 @@ const RoomScreen = () => {
 
         const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'purge']));
 
-        transaction.update(targetRef, { alive: false, updatedAt: serverTimestamp() });
-        transaction.update(roomRef, {
+        const updates: Record<string, unknown> = {
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        transaction.update(targetRef, { alive: false, updatedAt: serverTimestamp() });
+
+        if (targetData.role === 'mastermind') {
+          updates.status = 'finished';
+          updates.phase = 'finished';
+        }
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -562,7 +604,8 @@ const RoomScreen = () => {
   };
 
   const handleAutoEnactPolicy = async () => {
-    if (!room || !isOwner || room.phase !== 'enactment' || !room.autoEnactment) return;
+    if (!room || !isOwner || room.phase !== 'enactment' || !room.autoEnactment || isFinished)
+      return;
     setBusy('auto-enact');
 
     try {
@@ -584,22 +627,31 @@ const RoomScreen = () => {
 
         if (!enacted) return;
 
-        transaction.update(roomRef, {
+        const updatedSyndicatePolicies =
+          enacted === 'syndicate'
+            ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
+            : roomData.syndicatePoliciesEnacted ?? 0;
+        const updatedAgencyPolicies =
+          enacted === 'agency'
+            ? (roomData.agencyPoliciesEnacted ?? 0) + 1
+            : roomData.agencyPoliciesEnacted ?? 0;
+
+        const updates: Record<string, unknown> = {
           policyDeck: remainingDeck,
           policyDiscard: remainingDiscard,
-          syndicatePoliciesEnacted:
-            enacted === 'syndicate'
-              ? (roomData.syndicatePoliciesEnacted ?? 0) + 1
-              : roomData.syndicatePoliciesEnacted ?? 0,
-          agencyPoliciesEnacted:
-            enacted === 'agency'
-              ? (roomData.agencyPoliciesEnacted ?? 0) + 1
-              : roomData.agencyPoliciesEnacted ?? 0,
+          syndicatePoliciesEnacted: updatedSyndicatePolicies,
+          agencyPoliciesEnacted: updatedAgencyPolicies,
           deputyHand: [],
           directorHand: [],
           autoEnactment: false,
           updatedAt: serverTimestamp(),
-        });
+
+          ...(updatedAgencyPolicies >= 5 || updatedSyndicatePolicies >= 6
+            ? { status: 'finished', phase: 'finished' }
+            : {}),
+        };
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -609,7 +661,7 @@ const RoomScreen = () => {
   };
 
   const handleEndGame = async () => {
-    if (!room || !isOwner) return;
+    if (!room || !isOwner || isFinished) return;
     setBusy('end');
 
     try {
