@@ -13,8 +13,8 @@ import { useClientIdContext } from '../contexts/ClientContext';
 import { usePlayers, useRoom } from '../hooks/useRoomData';
 import LobbyScreen from './LobbyScreen';
 import GameScreen from './GameScreen';
-import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards } from '../utils/game';
-import type { Player, PolicyCard, VoteChoice } from '../types';
+import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers } from '../utils/game';
+import type { Player, PolicyCard, SyndicatePower, Team, VoteChoice } from '../types';
 
 const getNextDirectorCandidate = (
   currentDirectorId: string | null,
@@ -106,6 +106,10 @@ const RoomScreen = () => {
         deputyHand: [],
         syndicatePoliciesEnacted: 0,
         agencyPoliciesEnacted: 0,
+        syndicatePowersResolved: [],
+        investigationResults: {},
+        surveillancePeek: [],
+        specialElectionDirectorId: null,
         updatedAt: serverTimestamp(),
       });
 
@@ -123,14 +127,19 @@ const RoomScreen = () => {
 
     try {
       const roomRef = doc(db, 'rooms', room.id);
+      const specialElectionTarget =
+        room.specialElectionDirectorId &&
+        players.some((player) => player.id === room.specialElectionDirectorId && player.alive)
+          ? room.specialElectionDirectorId
+          : null;
       const nextDirectorCandidate = getNextDirectorCandidate(
-        room.directorCandidateId ?? room.directorId ?? null,
+        specialElectionTarget ?? room.directorCandidateId ?? room.directorId ?? null,
         players,
       );
       await updateDoc(roomRef, {
         round: increment(1),
         phase: 'nomination',
-        directorCandidateId: nextDirectorCandidate,
+        directorCandidateId: specialElectionTarget ?? nextDirectorCandidate,
         deputyCandidateId: null,
         directorId: null,
         deputyId: null,
@@ -140,6 +149,8 @@ const RoomScreen = () => {
         autoEnactment: false,
         directorHand: [],
         deputyHand: [],
+        specialElectionDirectorId: null,
+        surveillancePeek: [],
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
@@ -375,6 +386,181 @@ const RoomScreen = () => {
     }
   };
 
+  const handleInvestigatePlayer = async (playerId: string) => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy(`investigate-${playerId}`);
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      const targetRef = doc(db, 'rooms', room.id, 'players', playerId);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+
+        if (!unlockedPowers.includes('investigate') || resolvedPowers.includes('investigate')) return;
+
+        const targetSnap = await transaction.get(targetRef);
+
+        if (!targetSnap.exists()) {
+          throw new Error('Player not found');
+        }
+
+        const targetData = targetSnap.data() as Player;
+        const results = (roomData.investigationResults ?? {}) as Record<string, Team>;
+        const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'investigate']));
+
+        transaction.update(roomRef, {
+          investigationResults: { ...results, [playerId]: targetData.team ?? null },
+          syndicatePowersResolved: updatedResolved,
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleSurveillance = async () => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy('surveillance');
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+
+        if (!unlockedPowers.includes('surveillance') || resolvedPowers.includes('surveillance')) return;
+
+        const deck = (roomData.policyDeck ?? []) as PolicyCard[];
+        const discard = (roomData.policyDiscard ?? []) as PolicyCard[];
+        const availableDeck = deck.length >= 3 ? deck : [...deck, ...discard];
+        const peek = availableDeck.slice(0, 3);
+        const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'surveillance']));
+
+        transaction.update(roomRef, {
+          surveillancePeek: peek,
+          syndicatePowersResolved: updatedResolved,
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleSpecialElection = async (directorId: string) => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy(`special-election-${directorId}`);
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      const targetRef = doc(db, 'rooms', room.id, 'players', directorId);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+
+        if (!unlockedPowers.includes('special_election') || resolvedPowers.includes('special_election')) return;
+
+        const targetSnap = await transaction.get(targetRef);
+
+        if (!targetSnap.exists()) {
+          throw new Error('Player not found');
+        }
+
+        const targetData = targetSnap.data() as Player;
+        if (!targetData.alive) return;
+
+        const updatedResolved = Array.from(
+          new Set<SyndicatePower>([...resolvedPowers, 'special_election']),
+        );
+
+        transaction.update(roomRef, {
+          specialElectionDirectorId: directorId,
+          syndicatePowersResolved: updatedResolved,
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePurgePlayer = async (playerId: string) => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment') return;
+    setBusy(`purge-${playerId}`);
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+      const targetRef = doc(db, 'rooms', room.id, 'players', playerId);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data();
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+
+        if (!unlockedPowers.includes('purge') || resolvedPowers.includes('purge')) return;
+
+        const targetSnap = await transaction.get(targetRef);
+
+        if (!targetSnap.exists()) {
+          throw new Error('Player not found');
+        }
+
+        const targetData = targetSnap.data() as Player;
+        if (!targetData.alive) return;
+
+        const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'purge']));
+
+        transaction.update(targetRef, { alive: false, updatedAt: serverTimestamp() });
+        transaction.update(roomRef, {
+          syndicatePowersResolved: updatedResolved,
+          updatedAt: serverTimestamp(),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleAutoEnactPolicy = async () => {
     if (!room || !isOwner || room.phase !== 'enactment' || !room.autoEnactment) return;
     setBusy('auto-enact');
@@ -466,6 +652,10 @@ const RoomScreen = () => {
       onDirectorDiscard={handleDirectorDiscard}
       onDeputyEnact={handleDeputyEnact}
       onAutoEnactPolicy={handleAutoEnactPolicy}
+      onInvestigatePlayer={handleInvestigatePlayer}
+      onUseSurveillance={handleSurveillance}
+      onSpecialElection={handleSpecialElection}
+      onPurgePlayer={handlePurgePlayer}
       busyAction={busy}
     />
   );

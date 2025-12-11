@@ -12,6 +12,8 @@ export type VoteChoice = 'approve' | 'reject';
 
 export type VoteTallies = Record<string, VoteChoice>;
 
+export type SyndicatePower = 'investigate' | 'surveillance' | 'special_election' | 'purge';
+
 export interface Room {
   id: string;
   code: string;
@@ -37,6 +39,10 @@ export interface Room {
   deputyHand?: PolicyCard[];
   syndicatePoliciesEnacted?: number;
   agencyPoliciesEnacted?: number;
+  syndicatePowersResolved?: SyndicatePower[];
+  investigationResults?: Record<string, Team>;
+  surveillancePeek?: PolicyCard[];
+  specialElectionDirectorId?: string | null;
 }
 
 export interface Player {
