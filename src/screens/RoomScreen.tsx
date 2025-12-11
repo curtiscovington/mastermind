@@ -56,9 +56,9 @@ const RoomScreen = () => {
       const batch = writeBatch(db);
       const roomRef = doc(db, 'rooms', room.id);
 
-      assignments.forEach(({ playerId, role }) => {
+      assignments.forEach(({ playerId, role, team, knownTeammateIds }) => {
         const playerRef = doc(db, 'rooms', room.id, 'players', playerId);
-        batch.update(playerRef, { role, alive: true });
+        batch.update(playerRef, { role, team, knownTeammateIds, alive: true });
       });
 
       batch.update(roomRef, {

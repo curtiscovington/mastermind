@@ -44,7 +44,8 @@ const LobbyScreen = ({ room, players, clientId, onStartGame, starting }: Props) 
         {isOwner ? (
           <div className="stack">
             <p className="muted">
-              Minimum players: {minPlayers}. Agents will be added automatically as the group grows.
+              Minimum players: {minPlayers}. Agents join the Mastermind team as the group grows; at 7+
+              players, the Mastermind will not know their allies.
             </p>
             <button
               className="primary"

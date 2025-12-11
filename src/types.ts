@@ -2,6 +2,8 @@ export type GameStatus = 'lobby' | 'in_progress' | 'finished';
 
 export type Role = 'mastermind' | 'agent' | 'civilian' | null;
 
+export type Team = 'mastermind' | 'resistance' | null;
+
 export interface Room {
   id: string;
   code: string;
@@ -20,6 +22,8 @@ export interface Player {
   clientId: string;
   displayName: string;
   role: Role;
+  team: Team;
+  knownTeammateIds?: string[];
   alive: boolean;
   joinedAt?: unknown;
 }

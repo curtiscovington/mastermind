@@ -16,6 +16,11 @@ const roleCopy: Record<string, string> = {
   civilian: 'You are a Civilian. Find the Mastermind.',
 };
 
+const teamCopy: Record<string, string> = {
+  mastermind: 'Mastermind Team',
+  resistance: 'Resistance',
+};
+
 const GameScreen = ({
   room,
   players,
@@ -30,6 +35,10 @@ const GameScreen = ({
   const roleDescription = you?.role
     ? roleCopy[you.role] ?? 'Role assigned.'
     : 'Waiting for role assignment…';
+  const teamLabel = you?.team ? teamCopy[you.team] ?? you.team : 'Unassigned';
+  const knownTeammates = you?.knownTeammateIds
+    ? players.filter((player) => you.knownTeammateIds?.includes(player.id))
+    : [];
 
   return (
     <div className="screen">
@@ -48,6 +57,30 @@ const GameScreen = ({
           {you?.alive ? <span className="pill success">Alive</span> : <span className="pill danger">Eliminated</span>}
         </div>
         <p className="role-callout">{roleDescription}</p>
+        <p className="muted">Team: {teamLabel}</p>
+
+        {you ? (
+          <div className="stack">
+            <p className="muted">Known teammates</p>
+            {knownTeammates.length ? (
+              <ul className="list">
+                {knownTeammates.map((player) => (
+                  <li key={player.id} className="list-row">
+                    <div>
+                      <p className="list-title">{player.displayName}</p>
+                      <p className="muted">{player.role === 'agent' ? 'Agent' : 'Mastermind'}</p>
+                    </div>
+                    <span className={player.alive ? 'pill success' : 'pill danger'}>
+                      {player.alive ? 'Alive' : 'Eliminated'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">No teammates revealed to you yet.</p>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div className="card">
@@ -65,7 +98,12 @@ const GameScreen = ({
               </div>
               <div className="list-actions">
                 {room.status === 'finished' ? (
-                  <span className="pill neutral">{player.role ?? 'Unknown'}</span>
+                  <>
+                    <span className="pill neutral">
+                      {player.team ? teamCopy[player.team] ?? player.team : 'Unknown Team'}
+                    </span>
+                    <span className="pill neutral">{player.role ?? 'Unknown'}</span>
+                  </>
                 ) : null}
                 <span className={player.alive ? 'pill success' : 'pill danger'}>
                   {player.alive ? 'Alive' : 'Eliminated'}

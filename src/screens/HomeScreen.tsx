@@ -47,13 +47,15 @@ const HomeScreen = () => {
         updatedAt: serverTimestamp(),
       });
 
-      await addDoc(collection(db, 'rooms', roomRef.id, 'players'), {
-        clientId,
-        displayName: displayName.trim(),
-        role: null,
-        alive: true,
-        joinedAt: serverTimestamp(),
-      });
+        await addDoc(collection(db, 'rooms', roomRef.id, 'players'), {
+          clientId,
+          displayName: displayName.trim(),
+          role: null,
+          team: null,
+          knownTeammateIds: [],
+          alive: true,
+          joinedAt: serverTimestamp(),
+        });
 
       navigate(`/rooms/${roomRef.id}`);
     } catch (err) {
@@ -91,6 +93,8 @@ const HomeScreen = () => {
           clientId,
           displayName: joinName.trim(),
           role: null,
+          team: null,
+          knownTeammateIds: [],
           alive: true,
           joinedAt: serverTimestamp(),
         });
