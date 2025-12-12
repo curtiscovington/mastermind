@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Player, Room, SyndicatePower, VoteChoice } from '../types';
+import type { GamePhase, Player, Room, SyndicatePower, VoteChoice } from '../types';
 import { getUnlockedSyndicatePowers } from '../utils/game';
 
 type Props = {
@@ -27,6 +27,70 @@ const roleCopy: Record<string, string> = {
   mastermind: 'You are the MASTERMIND. Steer the Syndicate to victory.',
   syndicate_agent: 'You are a Syndicate Agent working with the Mastermind.',
   agency: 'You are Agency. Expose the Mastermind.',
+};
+
+const phaseThemes: Record<
+  GamePhase,
+  { icon: string; label: string; gradient: string; accent: string; glow: string }
+> = {
+  lobby: {
+    icon: '🛠️',
+    label: 'Lobby',
+    gradient: 'linear-gradient(120deg, rgba(125, 214, 255, 0.35), rgba(101, 255, 207, 0.24), rgba(125, 214, 255, 0.35))',
+    accent: 'rgba(125, 214, 255, 0.45)',
+    glow: 'rgba(111, 212, 255, 0.4)',
+  },
+  nomination: {
+    icon: '🎯',
+    label: 'Nomination',
+    gradient: 'linear-gradient(120deg, rgba(255, 195, 113, 0.35), rgba(255, 159, 94, 0.24), rgba(255, 195, 113, 0.35))',
+    accent: 'rgba(255, 195, 113, 0.55)',
+    glow: 'rgba(255, 177, 105, 0.45)',
+  },
+  voting: {
+    icon: '🗳️',
+    label: 'Voting',
+    gradient: 'linear-gradient(120deg, rgba(129, 178, 255, 0.35), rgba(103, 147, 255, 0.26), rgba(129, 178, 255, 0.35))',
+    accent: 'rgba(129, 178, 255, 0.5)',
+    glow: 'rgba(129, 178, 255, 0.45)',
+  },
+  enactment: {
+    icon: '⚡',
+    label: 'Enactment',
+    gradient: 'linear-gradient(120deg, rgba(170, 130, 255, 0.32), rgba(131, 96, 255, 0.26), rgba(170, 130, 255, 0.32))',
+    accent: 'rgba(170, 130, 255, 0.55)',
+    glow: 'rgba(170, 130, 255, 0.45)',
+  },
+  finished: {
+    icon: '🏁',
+    label: 'Finished',
+    gradient: 'linear-gradient(120deg, rgba(129, 240, 170, 0.32), rgba(109, 215, 154, 0.24), rgba(129, 240, 170, 0.32))',
+    accent: 'rgba(129, 240, 170, 0.5)',
+    glow: 'rgba(129, 240, 170, 0.35)',
+  },
+};
+
+const PhaseTile = ({ phase }: { phase: GamePhase }) => {
+  const theme = phaseThemes[phase];
+
+  return (
+    <button
+      type="button"
+      className="phase-tile"
+      style={{
+        backgroundImage: theme.gradient,
+        boxShadow: `0 16px 40px ${theme.glow}`,
+      }}
+      aria-label={`Current phase: ${theme.label}`}
+    >
+      <span className="phase-tile__icon" aria-hidden>
+        {theme.icon}
+      </span>
+      <span className="phase-tile__label" style={{ color: theme.accent }}>
+        {theme.label}
+      </span>
+    </button>
+  );
 };
 
 const teamCopy: Record<string, string> = {
@@ -138,13 +202,6 @@ const GameScreen = ({
       onNominateDeputy(selectedDeputyId);
     }
   };
-
-  const renderPhaseBadge = () => (
-    <div className="phase-badge">
-      <span className="phase-icon">⏳</span>
-      <span className="phase-label">Phase: {room.phase}</span>
-    </div>
-  );
 
   const renderPolicyMeter = (label: string, count: number, total: number, tone: 'danger' | 'success') => (
     <div className="policy-meter">
@@ -407,10 +464,12 @@ const GameScreen = ({
               <p className="eyebrow">Tempo</p>
               <h3>Election Tracker</h3>
             </div>
-            {renderPhaseBadge()}
           </summary>
 
           <div className="hud-column-body">
+            <div className="tempo-phase-strip">
+              <PhaseTile phase={room.phase} />
+            </div>
             <div className="card">
               <div className="card-header">
                 <h2>🗳️ Vote Flow</h2>
@@ -461,11 +520,11 @@ const GameScreen = ({
                 <span className="chip chip-soft">Live pulse</span>
               </div>
               <div className="phase-grid">
-                <div className="chip chip-strong">{room.phase.toUpperCase()}</div>
                 <div className="chip chip-soft">Round {room.round}</div>
                 <div className="chip chip-soft">Alive: {alivePlayers.length}</div>
+                <div className="chip chip-soft">Instability: {instability}</div>
               </div>
-              <p className="muted">The badge pulses during the active phase to keep attention centered.</p>
+              <p className="muted">The active phase tile stays pinned above so everyone can rally around the current step.</p>
             </div>
           </div>
         </details>
