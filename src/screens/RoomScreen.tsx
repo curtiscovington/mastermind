@@ -243,10 +243,6 @@ const RoomScreen = () => {
     [roster, room],
   );
 
-  if (!roomId) {
-    return <Navigate to="/" replace />;
-  }
-
   const stage: RoomStage = useMemo(() => {
     if (roomLoading || playersLoading) return 'loading';
     if (!room) return 'not_found';
@@ -254,6 +250,10 @@ const RoomScreen = () => {
     if (room.status === 'lobby') return busy === 'start' ? 'countdown' : 'waiting';
     return 'in_progress';
   }, [busy, playersLoading, room, roomLoading]);
+
+  if (!roomId) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleStartGame = async () => {
     if (!room || !isOwner || roster.length === 0 || isFinished) return;
