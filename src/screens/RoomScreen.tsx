@@ -7,6 +7,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { useMemo, useState } from 'react';
+import type { ReactElement } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { useClientIdContext } from '../contexts/ClientContext';
@@ -79,16 +80,16 @@ const RoomScreen = () => {
     return <Navigate to="/" replace />;
   }
 
+  let content: ReactElement | null = null;
+
   if (roomLoading || playersLoading) {
-    return (
+    content = (
       <div className="screen">
         <p className="muted">Loading room…</p>
       </div>
     );
-  }
-
-  if (!room) {
-    return (
+  } else if (!room) {
+    content = (
       <div className="screen">
         <p className="muted">Room not found.</p>
       </div>
@@ -698,39 +699,40 @@ const RoomScreen = () => {
     }
   };
 
-  if (room.status === 'lobby') {
-    return (
-      <LobbyScreen
-        room={room}
-        players={visiblePlayers}
-        clientId={clientId}
-        onStartGame={handleStartGame}
-        starting={busy === 'start'}
-      />
-    );
+  if (!content) {
+    content =
+      room.status === 'lobby' ? (
+        <LobbyScreen
+          room={room}
+          players={visiblePlayers}
+          clientId={clientId}
+          onStartGame={handleStartGame}
+          starting={busy === 'start'}
+        />
+      ) : (
+        <GameScreen
+          room={room}
+          players={visiblePlayers}
+          clientId={clientId}
+          onNextRound={handleNextRound}
+          onToggleAlive={handleToggleAlive}
+          onEndGame={handleEndGame}
+          onNominateDeputy={handleNominateDeputy}
+          onSubmitVote={handleSubmitVote}
+          onDrawPolicies={handleDrawPolicies}
+          onDirectorDiscard={handleDirectorDiscard}
+          onDeputyEnact={handleDeputyEnact}
+          onAutoEnactPolicy={handleAutoEnactPolicy}
+          onInvestigatePlayer={handleInvestigatePlayer}
+          onUseSurveillance={handleSurveillance}
+          onSpecialElection={handleSpecialElection}
+          onPurgePlayer={handlePurgePlayer}
+          busyAction={busy}
+        />
+      );
   }
 
-  return (
-    <GameScreen
-      room={room}
-      players={visiblePlayers}
-      clientId={clientId}
-      onNextRound={handleNextRound}
-      onToggleAlive={handleToggleAlive}
-      onEndGame={handleEndGame}
-      onNominateDeputy={handleNominateDeputy}
-      onSubmitVote={handleSubmitVote}
-      onDrawPolicies={handleDrawPolicies}
-      onDirectorDiscard={handleDirectorDiscard}
-      onDeputyEnact={handleDeputyEnact}
-      onAutoEnactPolicy={handleAutoEnactPolicy}
-      onInvestigatePlayer={handleInvestigatePlayer}
-      onUseSurveillance={handleSurveillance}
-      onSpecialElection={handleSpecialElection}
-      onPurgePlayer={handlePurgePlayer}
-      busyAction={busy}
-    />
-  );
+  return <div className="room-shell">{content}</div>;
 };
 
 export default RoomScreen;
