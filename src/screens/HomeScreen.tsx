@@ -22,8 +22,8 @@ const HomeScreen = () => {
   const clientId = useClientIdContext();
   const navigate = useNavigate();
 
-  const [displayName, setDisplayName] = useState('');
-  const [joinName, setJoinName] = useState('');
+  const [codename, setCodename] = useState('');
+  const [joinCodename, setJoinCodename] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,15 +55,15 @@ const HomeScreen = () => {
         updatedAt: serverTimestamp(),
       });
 
-        await addDoc(collection(db, 'rooms', roomRef.id, 'players'), {
-          clientId,
-          displayName: displayName.trim(),
-          role: null,
-          team: null,
-          knownTeammateIds: [],
-          alive: true,
-          joinedAt: serverTimestamp(),
-        });
+      await addDoc(collection(db, 'rooms', roomRef.id, 'players'), {
+        clientId,
+        displayName: codename.trim(),
+        role: null,
+        team: null,
+        knownTeammateIds: [],
+        alive: true,
+        joinedAt: serverTimestamp(),
+      });
 
       navigate(`/rooms/${roomRef.id}`);
     } catch (err) {
@@ -99,7 +99,7 @@ const HomeScreen = () => {
       if (existing.empty) {
         await addDoc(playersRef, {
           clientId,
-          displayName: joinName.trim(),
+          displayName: joinCodename.trim(),
           role: null,
           team: null,
           knownTeammateIds: [],
@@ -108,8 +108,8 @@ const HomeScreen = () => {
         });
       } else {
         const playerDoc = existing.docs[0];
-        if (playerDoc.data().displayName !== joinName.trim()) {
-          await updateDoc(playerDoc.ref, { displayName: joinName.trim() });
+        if (playerDoc.data().displayName !== joinCodename.trim()) {
+          await updateDoc(playerDoc.ref, { displayName: joinCodename.trim() });
         }
       }
 
@@ -133,21 +133,21 @@ const HomeScreen = () => {
       <div className="card-grid">
         <form className="card" onSubmit={handleCreateRoom}>
           <div className="card-header">
-            <h2>Create Room</h2>
-            <p>Become the Owner and invite friends.</p>
+          <h2>Create Room</h2>
+          <p>Become the Owner and invite friends.</p>
           </div>
           <label className="field">
-            <span>Display name</span>
+            <span>Codename (kept secret until the game begins)</span>
             <input
               type="text"
-              placeholder="e.g. Riley"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. ShadowFox"
+              value={codename}
+              onChange={(e) => setCodename(e.target.value)}
               required
               minLength={2}
             />
           </label>
-          <button type="submit" className="primary" disabled={loading || !displayName.trim()}>
+          <button type="submit" className="primary" disabled={loading || !codename.trim()}>
             {loading ? 'Working…' : 'Create room'}
           </button>
         </form>
@@ -158,12 +158,12 @@ const HomeScreen = () => {
             <p>Enter a room code shared by your Owner.</p>
           </div>
           <label className="field">
-            <span>Display name</span>
+            <span>Codename (kept secret until the game begins)</span>
             <input
               type="text"
-              placeholder="e.g. Taylor"
-              value={joinName}
-              onChange={(e) => setJoinName(e.target.value)}
+              placeholder="e.g. NightOwl"
+              value={joinCodename}
+              onChange={(e) => setJoinCodename(e.target.value)}
               required
               minLength={2}
             />
@@ -183,7 +183,7 @@ const HomeScreen = () => {
           <button
             type="submit"
             className="secondary"
-            disabled={loading || !joinName.trim() || joinCode.trim().length < 4}
+            disabled={loading || !joinCodename.trim() || joinCode.trim().length < 4}
           >
             {loading ? 'Working…' : 'Join room'}
           </button>
