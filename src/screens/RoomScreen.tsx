@@ -15,7 +15,7 @@ import { usePlayers, useRoom } from '../hooks/useRoomData';
 import LobbyScreen from './LobbyScreen';
 import GameScreen from './GameScreen';
 import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers } from '../utils/game';
-import type { Player, PolicyCard, SyndicatePower, Team, VoteChoice } from '../types';
+import type { Player, PolicyCard, Room, SyndicatePower, Team, VoteChoice } from '../types';
 
 const shufflePlayers = (players: Player[], seed: string) => {
   if (!seed) return players;
@@ -52,6 +52,173 @@ const getNextDirectorCandidate = (
   return alivePlayers[nextIndex]?.id ?? null;
 };
 
+type RoomStage = 'loading' | 'waiting' | 'countdown' | 'in_progress' | 'finished' | 'not_found';
+
+const LoadingStage = () => (
+  <div className="screen" role="status">
+    <p className="muted">Loading room…</p>
+  </div>
+);
+
+const MissingRoomStage = () => (
+  <div className="screen">
+    <p className="muted">Room not found.</p>
+  </div>
+);
+
+const WaitingStage = ({
+  room,
+  players,
+  clientId,
+  onStartGame,
+  starting,
+}: {
+  room: Room;
+  players: Player[];
+  clientId: string;
+  onStartGame: () => Promise<void>;
+  starting: boolean;
+}) => (
+  <LobbyScreen room={room} players={players} clientId={clientId} onStartGame={onStartGame} starting={starting} />
+);
+
+const ActiveStage = ({
+  room,
+  players,
+  clientId,
+  busyAction,
+  handlers,
+}: {
+  room: Room;
+  players: Player[];
+  clientId: string;
+  busyAction: string | null;
+  handlers: {
+    onNextRound: () => Promise<void>;
+    onToggleAlive: (player: Player) => Promise<void>;
+    onEndGame: () => Promise<void>;
+    onNominateDeputy: (deputyId: string) => Promise<void>;
+    onSubmitVote: (choice: VoteChoice) => Promise<void>;
+    onDrawPolicies: () => Promise<void>;
+    onDirectorDiscard: (cardIndex: number) => Promise<void>;
+    onDeputyEnact: (cardIndex: number) => Promise<void>;
+    onAutoEnactPolicy: () => Promise<void>;
+    onInvestigatePlayer: (playerId: string) => Promise<void>;
+    onUseSurveillance: () => Promise<void>;
+    onSpecialElection: (directorId: string) => Promise<void>;
+    onPurgePlayer: (playerId: string) => Promise<void>;
+  };
+}) => (
+  <GameScreen
+    room={room}
+    players={players}
+    clientId={clientId}
+    onNextRound={handlers.onNextRound}
+    onToggleAlive={handlers.onToggleAlive}
+    onEndGame={handlers.onEndGame}
+    onNominateDeputy={handlers.onNominateDeputy}
+    onSubmitVote={handlers.onSubmitVote}
+    onDrawPolicies={handlers.onDrawPolicies}
+    onDirectorDiscard={handlers.onDirectorDiscard}
+    onDeputyEnact={handlers.onDeputyEnact}
+    onAutoEnactPolicy={handlers.onAutoEnactPolicy}
+    onInvestigatePlayer={handlers.onInvestigatePlayer}
+    onUseSurveillance={handlers.onUseSurveillance}
+    onSpecialElection={handlers.onSpecialElection}
+    onPurgePlayer={handlers.onPurgePlayer}
+    busyAction={busyAction}
+  />
+);
+
+const ResultsStage = ({ room, players }: { room: Room; players: Player[] }) => {
+  const syndicateEnacted = room.syndicatePoliciesEnacted ?? 0;
+  const agencyEnacted = room.agencyPoliciesEnacted ?? 0;
+  const survivingPlayers = players.filter((player) => player.alive);
+  const eliminatedPlayers = players.filter((player) => !player.alive);
+
+  return (
+    <div className="screen">
+      <header className="section-header">
+        <div>
+          <p className="eyebrow">Room {room.code}</p>
+          <h1>Game finished</h1>
+          <p className="muted">Review the outcome and restart if you want another round.</p>
+        </div>
+        <div className="badge">Finished</div>
+      </header>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Policy Summary</h2>
+          <span className="pill neutral">Round {room.round}</span>
+        </div>
+        <ul className="list">
+          <li className="list-row">
+            <div>
+              <p className="list-title">Syndicate Policies Enacted</p>
+              <p className="muted">Progress toward Mastermind victory.</p>
+            </div>
+            <span className="pill danger">{syndicateEnacted} / 6</span>
+          </li>
+          <li className="list-row">
+            <div>
+              <p className="list-title">Agency Policies Enacted</p>
+              <p className="muted">Progress toward Agency victory.</p>
+            </div>
+            <span className="pill success">{agencyEnacted} / 6</span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Players</h2>
+          <span className="pill neutral">Status at end</span>
+        </div>
+        <div className="card-grid">
+          <div className="stack">
+            <p className="muted">Survivors</p>
+            {survivingPlayers.length ? (
+              <ul className="list">
+                {survivingPlayers.map((player) => (
+                  <li key={player.id} className="list-row">
+                    <div>
+                      <p className="list-title">{player.displayName}</p>
+                      <p className="muted">{player.role ?? 'Unknown role'}</p>
+                    </div>
+                    <span className="pill success">Alive</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">No survivors this round.</p>
+            )}
+          </div>
+
+          <div className="stack">
+            <p className="muted">Eliminated</p>
+            {eliminatedPlayers.length ? (
+              <ul className="list">
+                {eliminatedPlayers.map((player) => (
+                  <li key={player.id} className="list-row">
+                    <div>
+                      <p className="list-title">{player.displayName}</p>
+                      <p className="muted">{player.role ?? 'Unknown role'}</p>
+                    </div>
+                    <span className="pill danger">Eliminated</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">No one was eliminated.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RoomScreen = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const clientId = useClientIdContext();
@@ -80,21 +247,13 @@ const RoomScreen = () => {
     return <Navigate to="/" replace />;
   }
 
-  let content: ReactElement | null = null;
-
-  if (roomLoading || playersLoading) {
-    content = (
-      <div className="screen">
-        <p className="muted">Loading room…</p>
-      </div>
-    );
-  } else if (!room) {
-    content = (
-      <div className="screen">
-        <p className="muted">Room not found.</p>
-      </div>
-    );
-  }
+  const stage: RoomStage = useMemo(() => {
+    if (roomLoading || playersLoading) return 'loading';
+    if (!room) return 'not_found';
+    if (room.status === 'finished' || room.phase === 'finished') return 'finished';
+    if (room.status === 'lobby') return busy === 'start' ? 'countdown' : 'waiting';
+    return 'in_progress';
+  }, [busy, playersLoading, room, roomLoading]);
 
   const handleStartGame = async () => {
     if (!room || !isOwner || roster.length === 0 || isFinished) return;
@@ -699,35 +858,55 @@ const RoomScreen = () => {
     }
   };
 
-  if (!content) {
-    content =
-      room.status === 'lobby' ? (
-        <LobbyScreen
-          room={room}
+  const handlers = {
+    onNextRound: handleNextRound,
+    onToggleAlive: handleToggleAlive,
+    onEndGame: handleEndGame,
+    onNominateDeputy: handleNominateDeputy,
+    onSubmitVote: handleSubmitVote,
+    onDrawPolicies: handleDrawPolicies,
+    onDirectorDiscard: handleDirectorDiscard,
+    onDeputyEnact: handleDeputyEnact,
+    onAutoEnactPolicy: handleAutoEnactPolicy,
+    onInvestigatePlayer: handleInvestigatePlayer,
+    onUseSurveillance: handleSurveillance,
+    onSpecialElection: handleSpecialElection,
+    onPurgePlayer: handlePurgePlayer,
+  };
+
+  let content: ReactElement | null = null;
+
+  switch (stage) {
+    case 'loading':
+      content = <LoadingStage />;
+      break;
+    case 'not_found':
+      content = <MissingRoomStage />;
+      break;
+    case 'waiting':
+    case 'countdown':
+      content = (
+        <WaitingStage
+          room={room as Room}
           players={visiblePlayers}
           clientId={clientId}
           onStartGame={handleStartGame}
           starting={busy === 'start'}
         />
-      ) : (
-        <GameScreen
-          room={room}
+      );
+      break;
+    case 'finished':
+      content = <ResultsStage room={room as Room} players={visiblePlayers} />;
+      break;
+    case 'in_progress':
+    default:
+      content = (
+        <ActiveStage
+          room={room as Room}
           players={visiblePlayers}
           clientId={clientId}
-          onNextRound={handleNextRound}
-          onToggleAlive={handleToggleAlive}
-          onEndGame={handleEndGame}
-          onNominateDeputy={handleNominateDeputy}
-          onSubmitVote={handleSubmitVote}
-          onDrawPolicies={handleDrawPolicies}
-          onDirectorDiscard={handleDirectorDiscard}
-          onDeputyEnact={handleDeputyEnact}
-          onAutoEnactPolicy={handleAutoEnactPolicy}
-          onInvestigatePlayer={handleInvestigatePlayer}
-          onUseSurveillance={handleSurveillance}
-          onSpecialElection={handleSpecialElection}
-          onPurgePlayer={handlePurgePlayer}
           busyAction={busy}
+          handlers={handlers}
         />
       );
   }
