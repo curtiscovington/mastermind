@@ -143,6 +143,7 @@ const GameScreen = ({
   busyAction,
 }: Props) => {
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
+  const [infoOpen, setInfoOpen] = useState(false);
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
   const isOwner = room.ownerClientId === clientId;
@@ -221,15 +222,63 @@ const GameScreen = ({
   return (
     <div className="screen game-grid">
       <header className="section-header game-header">
-        <div>
-          <p className="eyebrow">Room {room.code}</p>
-          <h1>Round {room.round}</h1>
-          <div className="chip-row">
-            <span className="chip chip-soft">Status: {room.status}</span>
-            <span className="chip chip-soft">Players online: {players.length}</span>
+        <div className="hud-bar">
+          <div className="hud-bar__primary">
+            <span className="hud-glyph" aria-hidden="true">
+              🎯
+            </span>
+            <div>
+              <p className="eyebrow hud-label">Round {room.round}</p>
+              <p className="hud-phase">Phase: {room.phase}</p>
+            </div>
+          </div>
+
+          <div className="hud-bar__actions">
+            <div className="hud-chip-group" aria-label="Table indicators">
+              <span className="hud-chip" title="Players online">
+                <span aria-hidden="true">👥</span>
+                <span className="hud-chip__value">{players.length}</span>
+              </span>
+
+              {isOwner ? (
+                <span className="hud-chip hud-chip--owner" title="You are the room owner">
+                  <span aria-hidden="true">★</span>
+                  <span className="sr-only">Owner</span>
+                </span>
+              ) : null}
+            </div>
+
+            {(room.status === 'lobby' || room.phase === 'lobby') && (
+              <button
+                type="button"
+                className={`icon-button ${infoOpen ? 'is-active' : ''}`}
+                aria-label="Lobby info"
+                aria-expanded={infoOpen && room.status === 'lobby'}
+                aria-controls="lobby-info-panel"
+                onClick={() => setInfoOpen((open) => !open)}
+              >
+                ℹ️
+              </button>
+            )}
+
+            <button type="button" className="icon-button ghost" aria-label="Menu">
+              ☰
+            </button>
           </div>
         </div>
-        <div className="badge">{isOwner ? 'Owner' : 'Player'}</div>
+
+        {infoOpen && room.status === 'lobby' ? (
+          <div className="info-panel" id="lobby-info-panel">
+            <div className="info-panel__row">
+              <span className="info-panel__label">Room code</span>
+              <span className="info-panel__value">{room.code}</span>
+            </div>
+            <div className="info-panel__meta">
+              <span className="pill neutral">Lobby</span>
+              <span className="muted">Phase: {room.phase}</span>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <div className="hud-grid">
