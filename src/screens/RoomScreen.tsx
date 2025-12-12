@@ -16,6 +16,21 @@ import GameScreen from './GameScreen';
 import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers } from '../utils/game';
 import type { Player, PolicyCard, SyndicatePower, Team, VoteChoice } from '../types';
 
+const shufflePlayers = (players: Player[], seed: string) => {
+  if (!seed) return players;
+
+  let rngSeed = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const shuffled = [...players];
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    rngSeed = Math.sin(rngSeed + i) * 10000;
+    const j = Math.abs(Math.floor(rngSeed)) % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+};
+
 const getNextDirectorCandidate = (
   currentDirectorId: string | null,
   roster: Player[],
@@ -40,7 +55,7 @@ const RoomScreen = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const clientId = useClientIdContext();
   const { room, loading: roomLoading } = useRoom(roomId ?? '');
-  const { players, loading: playersLoading } = usePlayers(roomId ?? '');
+  const { players: roster, loading: playersLoading } = usePlayers(roomId ?? '');
   const [busy, setBusy] = useState<string | null>(null);
 
   const isFinished = room?.status === 'finished';
@@ -51,8 +66,13 @@ const RoomScreen = () => {
   );
 
   const you = useMemo(
-    () => players.find((player) => player.clientId === clientId),
-    [clientId, players],
+    () => roster.find((player) => player.clientId === clientId),
+    [clientId, roster],
+  );
+
+  const visiblePlayers = useMemo(
+    () => (room ? shufflePlayers(roster, room.id) : roster),
+    [roster, room],
   );
 
   if (!roomId) {
@@ -76,14 +96,14 @@ const RoomScreen = () => {
   }
 
   const handleStartGame = async () => {
-    if (!room || !isOwner || players.length === 0 || isFinished) return;
+    if (!room || !isOwner || roster.length === 0 || isFinished) return;
     setBusy('start');
 
     try {
-      const assignments = assignRolesToPlayers(players);
+      const assignments = assignRolesToPlayers(roster);
       const batch = writeBatch(db);
       const roomRef = doc(db, 'rooms', room.id);
-      const firstDirectorCandidate = getNextDirectorCandidate(null, players);
+      const firstDirectorCandidate = getNextDirectorCandidate(null, roster);
 
       assignments.forEach(({ playerId, role, team, knownTeammateIds }) => {
         const playerRef = doc(db, 'rooms', room.id, 'players', playerId);
@@ -131,12 +151,12 @@ const RoomScreen = () => {
       const roomRef = doc(db, 'rooms', room.id);
       const specialElectionTarget =
         room.specialElectionDirectorId &&
-        players.some((player) => player.id === room.specialElectionDirectorId && player.alive)
+        roster.some((player) => player.id === room.specialElectionDirectorId && player.alive)
           ? room.specialElectionDirectorId
           : null;
       const nextDirectorCandidate = getNextDirectorCandidate(
         specialElectionTarget ?? room.directorCandidateId ?? room.directorId ?? null,
-        players,
+        roster,
       );
       await updateDoc(roomRef, {
         round: increment(1),
@@ -212,7 +232,7 @@ const RoomScreen = () => {
         const roomData = snapshot.data();
         const existingTallies = (roomData.voteTallies ?? {}) as Record<string, VoteChoice>;
         const updatedTallies = { ...existingTallies, [you.id]: choice };
-        const alivePlayers = players.filter((player) => player.alive);
+        const alivePlayers = roster.filter((player) => player.alive);
         const approvals = Object.values(updatedTallies).filter((vote) => vote === 'approve').length;
         const rejections = Object.values(updatedTallies).filter((vote) => vote === 'reject').length;
         const majority = Math.floor(alivePlayers.length / 2) + 1;
@@ -255,7 +275,7 @@ const RoomScreen = () => {
           const reachedChaos = newInstability >= 3;
           const nextDirectorCandidate = getNextDirectorCandidate(
             room.directorCandidateId ?? room.directorId ?? null,
-            players,
+            roster,
           );
 
           updates.phase = reachedChaos ? 'enactment' : 'nomination';
@@ -682,7 +702,7 @@ const RoomScreen = () => {
     return (
       <LobbyScreen
         room={room}
-        players={players}
+        players={visiblePlayers}
         clientId={clientId}
         onStartGame={handleStartGame}
         starting={busy === 'start'}
@@ -693,7 +713,7 @@ const RoomScreen = () => {
   return (
     <GameScreen
       room={room}
-      players={players}
+      players={visiblePlayers}
       clientId={clientId}
       onNextRound={handleNextRound}
       onToggleAlive={handleToggleAlive}

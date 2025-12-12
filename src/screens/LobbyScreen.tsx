@@ -34,8 +34,10 @@ const LobbyScreen = ({ room, players, clientId, onStartGame, starting }: Props) 
           {players.map((player) => (
             <li key={player.id} className="list-row">
               <div>
-                <p className="list-title">{player.displayName}</p>
-                <p className="muted">{player.clientId === clientId ? 'This is you' : 'Joined'}</p>
+                <p className="list-title">
+                  {player.clientId === clientId ? 'Your codename is locked' : 'Codename hidden'}
+                </p>
+                <p className="muted">{player.clientId === clientId ? 'This is you' : 'Standing by'}</p>
               </div>
               {player.clientId === room.ownerClientId ? <span className="pill">Owner</span> : null}
             </li>
@@ -48,6 +50,7 @@ const LobbyScreen = ({ room, players, clientId, onStartGame, starting }: Props) 
             <p className="muted">
               Minimum players: {minPlayers}. Maximum players: {maxPlayers}. Syndicate Agents join the
               Mastermind as the group grows; at 7+ players, the Mastermind may not know their agents.
+              Codenames stay hidden here and will be revealed once the game begins.
             </p>
             {hasTooManyPlayers ? (
               <p className="error">Too many players — remove {players.length - maxPlayers} to start.</p>
