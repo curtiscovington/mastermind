@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import GameScreen from './GameScreen';
 import LobbyScreen from './LobbyScreen';
 import ResultsScreen from './ResultsScreen';
@@ -28,6 +28,8 @@ const LocalPreviewScreen = () => {
   const [scenarioKey, setScenarioKey] = useState<PreviewScenarioKey>('lobby');
   const [clientId, setClientId] = useState<string>(previewClientIds[0] ?? persistedClientId);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [previewPlayers, setPreviewPlayers] = useState<Player[]>(previewScenarios[scenarioKey]?.players ?? []);
+  const [codenameDraft, setCodenameDraft] = useState('');
 
   const activeScenario = previewScenarios[scenarioKey];
   const effectiveClientId = clientId || persistedClientId;
@@ -35,41 +37,80 @@ const LocalPreviewScreen = () => {
     () => Array.from(new Set([persistedClientId, ...previewClientIds])),
     [persistedClientId],
   );
+  const you = useMemo(
+    () => previewPlayers.find((player) => player.clientId === effectiveClientId),
+    [effectiveClientId, previewPlayers],
+  );
+  const missingCodenames = useMemo(
+    () => previewPlayers.some((player) => !player.displayName?.trim()),
+    [previewPlayers],
+  );
 
-  const simulate = (action: string | null) =>
-    new Promise<void>((resolve) => {
-      setBusyAction(action);
-      window.setTimeout(() => {
-        setBusyAction(null);
-        resolve();
-      }, 500);
-    });
+  useEffect(() => {
+    if (activeScenario) {
+      setPreviewPlayers(activeScenario.players);
+    }
+  }, [activeScenario]);
+
+  useEffect(() => {
+    if (you) {
+      setCodenameDraft(you.displayName ?? '');
+    } else {
+      setCodenameDraft('');
+    }
+  }, [you]);
+
+  const simulate = useCallback(
+    (action: string | null) =>
+      new Promise<void>((resolve) => {
+        setBusyAction(action);
+        window.setTimeout(() => {
+          setBusyAction(null);
+          resolve();
+        }, 500);
+      }),
+    [],
+  );
 
   const previewContent = useMemo(() => {
     if (!activeScenario) return null;
 
-    const { room, players } = activeScenario;
+    const { room } = activeScenario;
 
     if (room.status === 'lobby' || room.phase === 'lobby') {
       return (
         <LobbyScreen
           room={room}
-          players={players}
+          players={previewPlayers}
           clientId={effectiveClientId}
           onStartGame={() => simulate('start')}
           starting={busyAction === 'start'}
+          onUpdateCodename={async () => {
+            await simulate('codename');
+            setPreviewPlayers((current) =>
+              current.map((player) =>
+                player.clientId === effectiveClientId
+                  ? { ...player, displayName: codenameDraft.trim() }
+                  : player,
+              ),
+            );
+          }}
+          updatingCodename={busyAction === 'codename'}
+          missingCodenames={missingCodenames}
+          onChangeCodename={setCodenameDraft}
+          codenameDraft={codenameDraft}
         />
       );
     }
 
     if (room.status === 'finished' || room.phase === 'finished') {
-      return <ResultsScreen room={room} players={players} />;
+      return <ResultsScreen room={room} players={previewPlayers} />;
     }
 
     return (
       <GameScreen
         room={room}
-        players={players}
+        players={previewPlayers}
         clientId={effectiveClientId}
         onNextRound={() => simulate('round')}
         onToggleAlive={(player: Player) => simulate(player.id)}
@@ -87,7 +128,7 @@ const LocalPreviewScreen = () => {
         busyAction={busyAction}
       />
     );
-  }, [activeScenario, busyAction, effectiveClientId]);
+  }, [activeScenario, busyAction, codenameDraft, effectiveClientId, missingCodenames, previewPlayers, simulate]);
 
   return (
     <div className="screen">

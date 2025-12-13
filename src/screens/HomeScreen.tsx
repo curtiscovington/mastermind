@@ -22,14 +22,11 @@ const HomeScreen = () => {
   const clientId = useClientIdContext();
   const navigate = useNavigate();
 
-  const [codename, setCodename] = useState('');
-  const [joinCodename, setJoinCodename] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleCreateRoom = async (event: FormEvent) => {
-    event.preventDefault();
+  const handleCreateRoom = async () => {
     setError('');
     setLoading(true);
 
@@ -57,7 +54,7 @@ const HomeScreen = () => {
 
       await addDoc(collection(db, 'rooms', roomRef.id, 'players'), {
         clientId,
-        displayName: codename.trim(),
+        displayName: '',
         role: null,
         team: null,
         knownTeammateIds: [],
@@ -99,7 +96,7 @@ const HomeScreen = () => {
       if (existing.empty) {
         await addDoc(playersRef, {
           clientId,
-          displayName: joinCodename.trim(),
+          displayName: '',
           role: null,
           team: null,
           knownTeammateIds: [],
@@ -108,9 +105,7 @@ const HomeScreen = () => {
         });
       } else {
         const playerDoc = existing.docs[0];
-        if (playerDoc.data().displayName !== joinCodename.trim()) {
-          await updateDoc(playerDoc.ref, { displayName: joinCodename.trim() });
-        }
+        await updateDoc(playerDoc.ref, { displayName: playerDoc.data().displayName ?? '' });
       }
 
       navigate(`/rooms/${roomId}`);
@@ -123,51 +118,25 @@ const HomeScreen = () => {
   };
 
   return (
-    <div className="screen">
-      <header className="hero">
-        <p className="eyebrow">Party Game</p>
-        <h1>The Mastermind</h1>
-        <p className="lead">Create a room, share the code, and play together in person.</p>
+    <div className="screen home-screen">
+      <header className="home-header">
+        <div>
+          <h1>Mastermind</h1>
+          <p className="home-intro">Join with a code or host a lobby for your crew.</p>
+        </div>
       </header>
 
-      <div className="card-grid">
-        <form className="card" onSubmit={handleCreateRoom}>
-          <div className="card-header">
-          <h2>Create Room</h2>
-          <p>Become the Owner and invite friends.</p>
+      <form className="home-panel" onSubmit={handleJoinRoom}>
+        <div className="home-panel__head">
+          <div>
+            <h2>Jump into a lobby</h2>
+            <p className="home-panel__hint">
+              Enter a room code to join your crew or spin up a new lobby in one click. You&apos;ll set a codename in the lobby.
+            </p>
           </div>
-          <label className="field">
-            <span>Codename (kept secret until the game begins)</span>
-            <input
-              type="text"
-              placeholder="e.g. ShadowFox"
-              value={codename}
-              onChange={(e) => setCodename(e.target.value)}
-              required
-              minLength={2}
-            />
-          </label>
-          <button type="submit" className="primary" disabled={loading || !codename.trim()}>
-            {loading ? 'Working…' : 'Create room'}
-          </button>
-        </form>
+        </div>
 
-        <form className="card" onSubmit={handleJoinRoom}>
-          <div className="card-header">
-            <h2>Join Room</h2>
-            <p>Enter a room code shared by your Owner.</p>
-          </div>
-          <label className="field">
-            <span>Codename (kept secret until the game begins)</span>
-            <input
-              type="text"
-              placeholder="e.g. NightOwl"
-              value={joinCodename}
-              onChange={(e) => setJoinCodename(e.target.value)}
-              required
-              minLength={2}
-            />
-          </label>
+        <div className="home-fields">
           <label className="field">
             <span>Room code</span>
             <input
@@ -180,17 +149,24 @@ const HomeScreen = () => {
               maxLength={6}
             />
           </label>
+        </div>
+
+        <div className="home-panel__actions">
           <button
             type="submit"
-            className="secondary"
-            disabled={loading || !joinCodename.trim() || joinCode.trim().length < 4}
+            className="primary"
+            disabled={loading || joinCode.trim().length < 4}
           >
-            {loading ? 'Working…' : 'Join room'}
+            {loading ? 'Working…' : 'Join'}
           </button>
-        </form>
-      </div>
+          <span className="home-panel__or">or</span>
+          <button type="button" className="secondary" onClick={handleCreateRoom} disabled={loading}>
+            {loading ? 'Working…' : 'Create room'}
+          </button>
+        </div>
+      </form>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error home-error">{error}</p> : null}
     </div>
   );
 };
