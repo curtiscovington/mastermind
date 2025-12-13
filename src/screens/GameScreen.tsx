@@ -162,14 +162,8 @@ const GameScreen = ({
     () => players.find((player) => player.id === room.deputyCandidateId),
     [players, room.deputyCandidateId],
   );
-  const previousDirector = useMemo(
-    () => players.find((player) => player.id === room.previousDirectorId),
-    [players, room.previousDirectorId],
-  );
 
   const voteTallies = room.voteTallies ?? {};
-  const approveCount = Object.values(voteTallies).filter((vote) => vote === 'approve').length;
-  const rejectCount = Object.values(voteTallies).filter((vote) => vote === 'reject').length;
   const hasVoted = you ? Boolean(voteTallies[you.id]) : false;
   const majorityNeeded = Math.floor(alivePlayers.length / 2) + 1;
   const instability = room.instabilityCount ?? 0;
@@ -203,20 +197,48 @@ const GameScreen = ({
     }
   };
 
-  const renderPolicyMeter = (label: string, count: number, total: number, tone: 'danger' | 'success') => (
-    <div className="policy-meter">
-      <div className="policy-meter__label">
-        <span className={`chip ${tone === 'danger' ? 'chip-danger' : 'chip-success'}`}>{label}</span>
-        <span className="chip chip-soft">{count} / {total}</span>
+  const policyThresholds: { count: number; label: string }[] = [
+    { count: 1, label: 'Investigate' },
+    { count: 2, label: 'Surveillance' },
+    { count: 3, label: 'Special Election' },
+    { count: 4, label: 'Purge' },
+  ];
+
+  const renderPolicyTrack = () => {
+    const agencyProgress = Math.min(agencyEnacted, 6) * (100 / 12);
+    const syndicateProgress = Math.min(syndicateEnacted, 6) * (100 / 12);
+    const markerStart = 50; // midpoint for Syndicate markers
+
+    return (
+      <div className="policy-track">
+        <div className="policy-track__legend">
+          <span className="pill success">Agency {agencyEnacted} / 6</span>
+          <span className="pill danger">Syndicate {syndicateEnacted} / 6</span>
+        </div>
+        <div className="policy-track__bar" role="img" aria-label="Policy track progress">
+          <div className="policy-track__segment policy-track__segment--agency" style={{ width: `${agencyProgress}%` }} />
+          <div className="policy-track__divider" aria-hidden />
+          <div
+            className="policy-track__segment policy-track__segment--syndicate"
+            style={{ width: `${syndicateProgress}%` }}
+          />
+          {policyThresholds.map((threshold) => (
+            <div
+              key={threshold.count}
+              className={`policy-track__marker ${syndicateEnacted >= threshold.count ? 'is-active' : ''}`}
+              style={{ left: `calc(${markerStart}% + ${(threshold.count / 6) * 50}%)` }}
+            >
+              <span className="policy-track__marker-label">{threshold.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="policy-track__labels">
+          <span>Agency</span>
+          <span>Syndicate</span>
+        </div>
       </div>
-      <div className="policy-meter__track">
-        <div
-          className={`policy-meter__fill ${tone === 'danger' ? 'fill-syndicate' : 'fill-agency'}`}
-          style={{ width: `${Math.min(count, total) * (100 / total)}%` }}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="screen game-stage">
@@ -263,28 +285,9 @@ const GameScreen = ({
 
           <div className="card">
             <div className="card-header">
-              <h2>📊 Policy Tracks</h2>
+              <h2>📊 Policy Track</h2>
             </div>
-            {renderPolicyMeter('Syndicate', syndicateEnacted, 6, 'danger')}
-            {renderPolicyMeter('Agency', agencyEnacted, 6, 'success')}
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h2>🗳️ Vote Flow</h2>
-              <span className="chip chip-soft">Majority {majorityNeeded}</span>
-            </div>
-            <p className="muted">Open the table menu to review nominees and cast your vote.</p>
-            <div className="button-row">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setStatusOpen(true)}
-                aria-label="Open vote menu"
-              >
-                Go to vote menu
-              </button>
-            </div>
+            {renderPolicyTrack()}
           </div>
 
           {room.phase === 'nomination' ? (
@@ -345,12 +348,7 @@ const GameScreen = ({
                 Director {directorCandidate?.displayName ?? 'Unknown'} nominated Deputy{' '}
                 {deputyCandidate?.displayName ?? 'Unknown'}.
               </p>
-              <p>
-                Votes:
-                {' '}
-                <span className="chip chip-soft">Approve {approveCount}</span>
-                <span className="chip chip-soft">Reject {rejectCount}</span>
-              </p>
+              <p className="muted">Votes remain hidden until every agent has submitted their choice.</p>
               {you?.alive ? (
                 <div className="button-row">
                   <button
@@ -371,7 +369,7 @@ const GameScreen = ({
               ) : (
                 <p className="muted">You cannot vote while eliminated.</p>
               )}
-              {hasVoted ? <p className="muted">Vote recorded. Waiting for others…</p> : null}
+              {hasVoted ? <p className="muted">Vote recorded. Waiting for every agent to vote.</p> : null}
             </div>
           ) : null}
 
@@ -398,91 +396,88 @@ const GameScreen = ({
                     Director {directorCandidate?.displayName ?? 'Unknown'} and Deputy{' '}
                     {deputyCandidate?.displayName ?? 'Unknown'} are handling policy cards.
                   </p>
-                  <div className="card-grid policy-stack">
+                  {isDirector ? (
                     <div className="card nested-card">
                       <div className="card-header">
                         <h3>Director Hand</h3>
                         <span className="pill neutral">Draw &amp; discard</span>
                       </div>
-                      {isDirector ? (
-                        directorHand.length === 3 ? (
-                          <ul className="list">
-                            {directorHand.map((card, index) => (
-                              <li key={index} className="list-row">
-                                <div>
-                                  <p className="list-title">{formatPolicyLabel(card)}</p>
-                                  <p className="muted">Discard one card to pass two onward.</p>
-                                </div>
-                                <button
-                                  className="secondary"
-                                  onClick={() => onDirectorDiscard(index)}
-                                  disabled={busyAction === `director-discard-${index}`}
-                                >
-                                  {busyAction === `director-discard-${index}` ? 'Discarding…' : 'Discard'}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                      ) : (
-                          <div className="stack">
-                            <p className="muted">Draw three policy cards to start enactment.</p>
-                            {hasDrawnThisRound ? (
-                              <p className="muted">Policies for this cycle are already in motion.</p>
-                            ) : (
+                      {directorHand.length === 3 ? (
+                        <ul className="list">
+                          {directorHand.map((card, index) => (
+                            <li key={index} className="list-row">
+                              <div>
+                                <p className="list-title">{formatPolicyLabel(card)}</p>
+                                <p className="muted">Discard one card to pass two onward.</p>
+                              </div>
                               <button
                                 className="secondary"
-                                onClick={async () => {
-                                  setDrawnRounds((prev) => ({ ...prev, [room.round]: true }));
-                                  await onDrawPolicies();
-                                }}
-                                disabled={busyAction === 'draw'}
+                                onClick={() => onDirectorDiscard(index)}
+                                disabled={busyAction === `director-discard-${index}`}
                               >
-                                {busyAction === 'draw' ? 'Drawing…' : 'Draw Policies'}
+                                {busyAction === `director-discard-${index}` ? 'Discarding…' : 'Discard'}
                               </button>
-                            )}
-                          </div>
-                        )
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
-                        <p className="muted">Director is drawing and discarding policies.</p>
+                        <div className="stack">
+                          <p className="muted">Draw three policy cards to start enactment.</p>
+                          {hasDrawnThisRound ? (
+                            <p className="muted">Policies for this cycle are already in motion.</p>
+                          ) : (
+                            <button
+                              className="secondary"
+                              onClick={async () => {
+                                setDrawnRounds((prev) => ({ ...prev, [room.round]: true }));
+                                await onDrawPolicies();
+                              }}
+                              disabled={busyAction === 'draw'}
+                            >
+                              {busyAction === 'draw' ? 'Drawing…' : 'Draw Policies'}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
+                  ) : null}
 
+                  {isDeputy ? (
                     <div className="card nested-card">
                       <div className="card-header">
                         <h3>Deputy Hand</h3>
                         <span className="pill neutral">Discard &amp; enact</span>
                       </div>
-                      {isDeputy ? (
-                        deputyHand.length === 2 ? (
-                          <ul className="list">
-                            {deputyHand.map((card, index) => (
-                              <li key={index} className="list-row">
-                                <div>
-                                  <p className="list-title">{formatPolicyLabel(card)}</p>
-                                  <p className="muted">Choose one card to enact; the other is discarded.</p>
-                                </div>
-                                <button
-                                  className="primary"
-                                  onClick={() => onDeputyEnact(index)}
-                                  disabled={busyAction === `deputy-enact-${index}`}
-                                >
-                                  {busyAction === `deputy-enact-${index}` ? 'Enacting…' : 'Enact'}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="muted">Waiting for the Director to pass two policies.</p>
-                        )
+                      {deputyHand.length === 2 ? (
+                        <ul className="list">
+                          {deputyHand.map((card, index) => (
+                            <li key={index} className="list-row">
+                              <div>
+                                <p className="list-title">{formatPolicyLabel(card)}</p>
+                                <p className="muted">Choose one card to enact; the other is discarded.</p>
+                              </div>
+                              <button
+                                className="primary"
+                                onClick={() => onDeputyEnact(index)}
+                                disabled={busyAction === `deputy-enact-${index}`}
+                              >
+                                {busyAction === `deputy-enact-${index}` ? 'Enacting…' : 'Enact'}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
-                        <p className="muted">
-                          {deputyHand.length
-                            ? 'Deputy is selecting which policy to enact.'
-                            : 'Waiting for the Deputy to receive policies.'}
-                        </p>
+                        <p className="muted">Waiting for the Director to pass two policies.</p>
                       )}
                     </div>
-                  </div>
+                  ) : null}
+
+                  {!isDirector && !isDeputy ? (
+                    <div className="stack">
+                      <p className="muted">Waiting for the Director to resolve their draw.</p>
+                      <p className="muted">Waiting for the Deputy to enact a policy.</p>
+                    </div>
+                  ) : null}
                 </>
               )}
               <p className="muted">The table will advance automatically after policy resolution.</p>
@@ -697,75 +692,6 @@ const GameScreen = ({
               </button>
             </div>
             <div className="overlay-content">
-              {room.phase === 'voting' ? (
-                <div className="overlay-section">
-                  <p className="overlay-section__title">🗳️ Vote Flow</p>
-                  <p className="overlay-lede">
-                    Review the ticket and cast your vote without cluttering the stage.
-                  </p>
-                  <ul className="overlay-list">
-                    <li className="overlay-list__item">
-                      <div>
-                        <p className="list-title">Director Candidate</p>
-                        <p className="overlay-meta">{directorCandidate?.displayName ?? 'Awaiting assignment'}</p>
-                      </div>
-                      <span className="pill neutral">{directorCandidate ? 'Chosen' : 'Pending'}</span>
-                    </li>
-                    <li className="overlay-list__item">
-                      <div>
-                        <p className="list-title">Deputy Candidate</p>
-                        <p className="overlay-meta">{deputyCandidate?.displayName ?? 'No nomination yet'}</p>
-                      </div>
-                      <span className="pill neutral">{deputyCandidate ? 'Nominated' : 'Open'}</span>
-                    </li>
-                    <li className="overlay-list__item">
-                      <div>
-                        <p className="list-title">Previous Director</p>
-                        <p className="overlay-meta">{previousDirector?.displayName ?? 'None yet'}</p>
-                      </div>
-                      <span className="pill neutral">History</span>
-                    </li>
-                    <li className="overlay-list__item">
-                      <div>
-                        <p className="list-title">Instability</p>
-                        <p className="overlay-meta">{instability} / 3 failed votes</p>
-                      </div>
-                      <span className={instability >= 2 ? 'pill danger' : 'pill neutral'}>
-                        {instability >= 2 ? 'Critical' : 'Stable'}
-                      </span>
-                    </li>
-                  </ul>
-                  {you?.alive ? (
-                    <div className="button-row">
-                      <button
-                        className="secondary"
-                        onClick={() => onSubmitVote('approve')}
-                        disabled={hasVoted || busyAction === 'vote'}
-                      >
-                        {hasVoted && voteTallies[you.id] === 'approve' ? 'Approved' : 'Approve'}
-                      </button>
-                      <button
-                        className="danger"
-                        onClick={() => onSubmitVote('reject')}
-                        disabled={hasVoted || busyAction === 'vote'}
-                      >
-                        {hasVoted && voteTallies[you.id] === 'reject' ? 'Rejected' : 'Reject'}
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="muted">You cannot vote while eliminated.</p>
-                  )}
-                  <p className="muted">
-                    Votes so far: Approve {approveCount} · Reject {rejectCount} (Majority {majorityNeeded})
-                  </p>
-                  {hasVoted ? <p className="muted">Vote recorded. Waiting for others…</p> : null}
-                  {room.autoEnactment ? (
-                    <p className="muted">
-                      Instability has peaked. A policy is auto-enacted after three failed votes.
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
               <div className="overlay-section">
                 <p className="overlay-section__title">Table snapshot</p>
                 <p className="overlay-lede">Quick access to the essentials without cluttering the stage.</p>
