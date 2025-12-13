@@ -7,9 +7,6 @@ type Props = {
   room: Room;
   players: Player[];
   clientId: string;
-  onNextRound: () => Promise<void>;
-  onToggleAlive: (player: Player) => Promise<void>;
-  onEndGame: () => Promise<void>;
   onNominateDeputy: (deputyId: string) => Promise<void>;
   onSubmitVote: (choice: VoteChoice) => Promise<void>;
   onDrawPolicies: () => Promise<void>;
@@ -127,9 +124,6 @@ const GameScreen = ({
   room,
   players,
   clientId,
-  onNextRound,
-  onToggleAlive,
-  onEndGame,
   onNominateDeputy,
   onSubmitVote,
   onDrawPolicies,
@@ -145,9 +139,9 @@ const GameScreen = ({
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
   const [statusOpen, setStatusOpen] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [playersOpen, setPlayersOpen] = useState(false);
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
-  const isOwner = room.ownerClientId === clientId;
   const roleDescription = you?.role
     ? roleCopy[you.role] ?? 'Role assigned.'
     : 'Waiting for role assignment…';
@@ -229,10 +223,6 @@ const GameScreen = ({
           <p className="eyebrow">Table status</p>
           <div className="stage-status">
             <span className="pill neutral">Round {room.round}</span>
-            <span className="stage-phase" aria-label={`Current phase: ${phaseThemes[room.phase].label}`}>
-              <span aria-hidden>{phaseThemes[room.phase].icon}</span>
-              <span>{phaseThemes[room.phase].label}</span>
-            </span>
           </div>
         </div>
         <div className="stage-header__actions">
@@ -255,6 +245,16 @@ const GameScreen = ({
             onClick={() => setRoleModalOpen(true)}
           >
             🎭
+          </button>
+          <button
+            type="button"
+            className={`icon-button ${playersOpen ? 'is-active' : ''}`}
+            aria-haspopup="dialog"
+            aria-expanded={playersOpen}
+            aria-label="Show players"
+            onClick={() => setPlayersOpen(true)}
+          >
+            👥
           </button>
         </div>
       </header>
@@ -508,71 +508,7 @@ const GameScreen = ({
                   </div>
                 </>
               )}
-              <p className="muted">Use Next Round after resolving the policy to continue.</p>
-            </div>
-          ) : null}
-
-          <div className="card">
-            <div className="card-header">
-              <h2>👥 Players</h2>
-            </div>
-            <ul className="list">
-              {players.map((player) => (
-                <li key={player.id} className="list-row">
-                  <div>
-                    <p className="list-title">{player.displayName}</p>
-                    <p className="muted">
-                      {player.clientId === clientId ? 'You' : player.clientId === room.ownerClientId ? 'Owner' : 'Player'}
-                    </p>
-                  </div>
-                  <div className="list-actions">
-                    {room.status === 'finished' ? (
-                      <>
-                        <span className="pill neutral">
-                          {player.team ? teamCopy[player.team] ?? player.team : 'Unknown Team'}
-                        </span>
-                        <span className="pill neutral">{player.role ? roleLabels[player.role] ?? player.role : 'Unknown'}</span>
-                      </>
-                    ) : null}
-                    <span className={player.alive ? 'pill success' : 'pill danger'}>
-                      {player.alive ? 'Alive' : 'Eliminated'}
-                    </span>
-                    {isOwner && room.status !== 'finished' ? (
-                      <button
-                        className="ghost"
-                        onClick={() => onToggleAlive(player)}
-                        disabled={busyAction === player.id}
-                      >
-                        {busyAction === player.id ? 'Updating…' : player.alive ? 'Mark Dead' : 'Revive'}
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {isOwner ? (
-            <div className="card owner-controls">
-              <div className="card-header">
-                <h2>🎛️ Owner Controls</h2>
-              </div>
-              <div className="button-row">
-                <button
-                  className="secondary"
-                  onClick={onNextRound}
-                  disabled={busyAction === 'round' || room.phase !== 'enactment'}
-                >
-                  {busyAction === 'round' ? 'Advancing…' : 'Next Round'}
-                </button>
-                <button
-                  className="danger"
-                  onClick={onEndGame}
-                  disabled={busyAction === 'end' || room.status === 'finished'}
-                >
-                  {busyAction === 'end' ? 'Ending…' : 'End Game'}
-                </button>
-              </div>
+              <p className="muted">The table will advance automatically after policy resolution.</p>
             </div>
           ) : null}
 
@@ -783,25 +719,44 @@ const GameScreen = ({
                 ✕
               </button>
             </div>
-            <div className="overlay-grid">
-              <div className="overlay-tile">
-                <p className="muted">Players</p>
-                <p className="overlay-value">{players.length}</p>
+            <div className="overlay-content">
+              <div className="overlay-section">
+                <p className="overlay-section__title">Table snapshot</p>
+                <p className="overlay-lede">Quick access to the essentials without cluttering the stage.</p>
+                <div className="overlay-grid overlay-grid--wide">
+                  <div className="overlay-tile">
+                    <p className="muted">Players</p>
+                    <p className="overlay-value">{players.length}</p>
+                  </div>
+                  <div className="overlay-tile">
+                    <p className="muted">Room code</p>
+                    <p className="overlay-value code">{room.code}</p>
+                  </div>
+                  <div className="overlay-tile">
+                    <p className="muted">Instability</p>
+                    <p className="overlay-value">{instability} / 3</p>
+                  </div>
+                  <div className="overlay-tile">
+                    <p className="muted">Majority needed</p>
+                    <p className="overlay-value">{majorityNeeded}</p>
+                  </div>
+                </div>
               </div>
-              <div className="overlay-tile">
-                <p className="muted">Owner</p>
-                <p className="overlay-value">{isOwner ? 'You' : 'Someone else'}</p>
-              </div>
-              <div className="overlay-tile">
-                <p className="muted">Phase</p>
-                <p className="overlay-value">{phaseThemes[room.phase].label}</p>
-              </div>
-              <div className="overlay-tile">
-                <p className="muted">Room code</p>
-                <p className="overlay-value code">{room.code}</p>
+
+              <div className="overlay-section overlay-section--row">
+                <PhaseTile phase={room.phase} />
+                <div className="overlay-section__body">
+                  <p className="overlay-section__title">Current tempo</p>
+                  <p className="muted">Round {room.round} · {alivePlayers.length} active agents</p>
+                  <div className="chip-row">
+                    <span className={`pill ${room.autoEnactment ? 'danger' : 'neutral'}`}>
+                      {room.autoEnactment ? 'Auto-enact in effect' : 'Manual enactment'}
+                    </span>
+                    <span className="pill neutral">{phaseThemes[room.phase].label}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="muted">This menu keeps secondary info tucked away so the main stage stays focused.</p>
           </div>
         </div>
       ) : null}
@@ -823,35 +778,93 @@ const GameScreen = ({
                 ✕
               </button>
             </div>
-            <div className="chip-row role-popover__chips">
-              <span className="pill neutral">{teamLabel}</span>
-              <span className={`pill ${aliveTone}`}>{aliveLabel}</span>
-            </div>
-            <p className="role-callout">{roleDescription}</p>
-            <p className="muted">Known team: {teamLabel}</p>
-
-            {you ? (
-              <div className="stack">
-                <p className="muted">Known teammates</p>
-                {knownTeammates.length ? (
-                  <ul className="list">
-                    {knownTeammates.map((player) => (
-                      <li key={player.id} className="list-row">
-                        <div>
-                          <p className="list-title">{player.displayName}</p>
-                          <p className="muted">{roleLabels[player.role ?? ''] ?? 'Unknown'}</p>
-                        </div>
-                        <span className={player.alive ? 'pill success' : 'pill danger'}>
-                          {player.alive ? 'Alive' : 'Eliminated'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="muted">No teammates revealed to you yet.</p>
-                )}
+            <div className="overlay-content">
+              <div className="overlay-section">
+                <div className="chip-row role-popover__chips">
+                  <span className="pill neutral">{teamLabel}</span>
+                  <span className={`pill ${aliveTone}`}>{aliveLabel}</span>
+                </div>
+                <p className="role-callout">{roleDescription}</p>
+                <p className="muted">Known team: {teamLabel}</p>
               </div>
-            ) : null}
+
+              {you ? (
+                <div className="overlay-section">
+                  <p className="overlay-section__title">Known teammates</p>
+                  {knownTeammates.length ? (
+                    <ul className="overlay-list">
+                      {knownTeammates.map((player) => (
+                        <li key={player.id} className="overlay-list__item">
+                          <div>
+                            <p className="list-title">{player.displayName}</p>
+                            <p className="overlay-meta">{roleLabels[player.role ?? ''] ?? 'Unknown'}</p>
+                          </div>
+                          <span className={player.alive ? 'pill success' : 'pill danger'}>
+                            {player.alive ? 'Alive' : 'Eliminated'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="muted">No teammates revealed to you yet.</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {playersOpen ? (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Players list">
+          <div className="overlay-panel">
+            <div className="overlay-header">
+              <div>
+                <p className="eyebrow">Roster</p>
+                <h2>👥 Players</h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button ghost"
+                aria-label="Close players"
+                onClick={() => setPlayersOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overlay-content">
+              <p className="overlay-lede">
+                See who is seated, their allegiance when revealed, and who is still active.
+              </p>
+              <ul className="overlay-list overlay-list--players">
+                {players.map((player) => (
+                  <li key={player.id} className="overlay-list__item">
+                    <div>
+                      <p className="list-title">{player.displayName}</p>
+                      <p className="overlay-meta">
+                        {player.clientId === clientId ? 'You' : player.clientId === room.ownerClientId ? 'Owner' : 'Player'}
+                      </p>
+                    </div>
+                    <div className="overlay-badges">
+                      {room.status === 'finished' ? (
+                        <>
+                          <span className="pill neutral">
+                            {player.team ? teamCopy[player.team] ?? player.team : 'Unknown Team'}
+                          </span>
+                          <span className="pill neutral">
+                            {player.role ? roleLabels[player.role] ?? player.role : 'Unknown'}
+                          </span>
+                        </>
+                      ) : null}
+                      <span className={player.alive ? 'pill success' : 'pill danger'}>
+                        {player.alive ? 'Alive' : 'Eliminated'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       ) : null}

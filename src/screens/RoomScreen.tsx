@@ -1,11 +1,4 @@
-import {
-  doc,
-  increment,
-  runTransaction,
-  serverTimestamp,
-  updateDoc,
-  writeBatch,
-} from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
@@ -116,9 +109,6 @@ const ActiveStage = ({
   clientId: string;
   busyAction: string | null;
   handlers: {
-    onNextRound: () => Promise<void>;
-    onToggleAlive: (player: Player) => Promise<void>;
-    onEndGame: () => Promise<void>;
     onNominateDeputy: (deputyId: string) => Promise<void>;
     onSubmitVote: (choice: VoteChoice) => Promise<void>;
     onDrawPolicies: () => Promise<void>;
@@ -135,9 +125,6 @@ const ActiveStage = ({
     room={room}
     players={players}
     clientId={clientId}
-    onNextRound={handlers.onNextRound}
-    onToggleAlive={handlers.onToggleAlive}
-    onEndGame={handlers.onEndGame}
     onNominateDeputy={handlers.onNominateDeputy}
     onSubmitVote={handlers.onSubmitVote}
     onDrawPolicies={handlers.onDrawPolicies}
@@ -259,59 +246,6 @@ const RoomScreen = () => {
     try {
       const playerRef = doc(db, 'rooms', room.id, 'players', you.id);
       await updateDoc(playerRef, { displayName: trimmed, updatedAt: serverTimestamp() });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleNextRound = async () => {
-    if (!room || !isOwner || isFinished) return;
-    setBusy('round');
-
-    try {
-      const roomRef = doc(db, 'rooms', room.id);
-      const specialElectionTarget =
-        room.specialElectionDirectorId &&
-        roster.some((player) => player.id === room.specialElectionDirectorId && player.alive)
-          ? room.specialElectionDirectorId
-          : null;
-      const nextDirectorCandidate = getNextDirectorCandidate(
-        specialElectionTarget ?? room.directorCandidateId ?? room.directorId ?? null,
-        roster,
-      );
-      await updateDoc(roomRef, {
-        round: increment(1),
-        phase: 'nomination',
-        directorCandidateId: specialElectionTarget ?? nextDirectorCandidate,
-        deputyCandidateId: null,
-        directorId: null,
-        deputyId: null,
-        previousDirectorId: room.directorId ?? room.directorCandidateId ?? null,
-        voteTallies: {},
-        instabilityCount: room.instabilityCount ?? 0,
-        autoEnactment: false,
-        directorHand: [],
-        deputyHand: [],
-        specialElectionDirectorId: null,
-        surveillancePeek: [],
-        updatedAt: serverTimestamp(),
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleToggleAlive = async (player: Player) => {
-    if (!room || !isOwner || isFinished) return;
-    setBusy(player.id);
-
-    try {
-      const playerRef = doc(db, 'rooms', room.id, 'players', player.id);
-      await updateDoc(playerRef, { alive: !player.alive, updatedAt: serverTimestamp() });
     } catch (err) {
       console.error(err);
     } finally {
@@ -803,28 +737,7 @@ const RoomScreen = () => {
     }
   };
 
-  const handleEndGame = async () => {
-    if (!room || !isOwner || isFinished) return;
-    setBusy('end');
-
-    try {
-      const roomRef = doc(db, 'rooms', room.id);
-      await updateDoc(roomRef, {
-        status: 'finished',
-        phase: 'finished',
-        updatedAt: serverTimestamp(),
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const handlers = {
-    onNextRound: handleNextRound,
-    onToggleAlive: handleToggleAlive,
-    onEndGame: handleEndGame,
     onNominateDeputy: handleNominateDeputy,
     onSubmitVote: handleSubmitVote,
     onDrawPolicies: handleDrawPolicies,

@@ -97,9 +97,6 @@ const LocalPreviewScreen = () => {
         room={room}
         players={previewPlayers}
         clientId={effectiveClientId}
-        onNextRound={() => simulate('round')}
-        onToggleAlive={(player: Player) => simulate(player.id)}
-        onEndGame={() => simulate('end')}
         onNominateDeputy={() => simulate('nominate')}
         onSubmitVote={() => simulate('vote')}
         onDrawPolicies={() => simulate('draw')}
