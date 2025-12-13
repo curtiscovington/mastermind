@@ -897,7 +897,7 @@ button:not(:disabled):active {
   inset: 0;
   background: linear-gradient(180deg, rgba(2, 5, 14, 0.65), rgba(4, 9, 22, 0.85));
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding: 1.25rem;
   z-index: 30;
@@ -906,11 +906,13 @@ button:not(:disabled):active {
 
 .overlay-panel {
   width: min(620px, 100%);
+  max-height: calc(100vh - 2.5rem);
   background: linear-gradient(180deg, rgba(12, 17, 32, 0.92), rgba(9, 13, 26, 0.94));
   border: 1px solid rgba(126, 208, 255, 0.25);
   border-radius: 18px;
   padding: 1.1rem 1rem 1.2rem;
   box-shadow: 0 24px 45px rgba(0, 0, 0, 0.45), 0 0 20px rgba(111, 212, 255, 0.18);
+  overflow: auto;
 }
 
 .overlay-header {
