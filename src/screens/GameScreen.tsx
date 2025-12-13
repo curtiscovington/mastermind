@@ -317,19 +317,6 @@ const GameScreen = ({
             ) : null}
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h2>Phase Rhythm</h2>
-              <span className="chip chip-soft">Live pulse</span>
-            </div>
-            <div className="phase-grid">
-              <div className="chip chip-soft">Round {room.round}</div>
-              <div className="chip chip-soft">Alive: {alivePlayers.length}</div>
-              <div className="chip chip-soft">Instability: {instability}</div>
-            </div>
-            <p className="muted">The phase tile stays pinned above so everyone can rally around the current step.</p>
-          </div>
-
           {room.phase === 'nomination' ? (
             <div className="card">
               <div className="card-header">
