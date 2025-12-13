@@ -630,18 +630,14 @@ button:not(:disabled):active {
 }
 
 .stage-header {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  left: auto;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.35rem 0.15rem 0.5rem;
-  background: linear-gradient(180deg, rgba(12, 16, 32, 0.95), rgba(12, 16, 32, 0.85));
-  z-index: 2;
-  border-radius: 16px;
-  border: 1px solid rgba(126, 208, 255, 0.2);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  justify-content: flex-end;
+  z-index: 4;
+  pointer-events: none;
 }
 
 .stage-status {
@@ -667,6 +663,13 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background: rgba(15, 22, 44, 0.75);
+  border: 1px solid rgba(126, 208, 255, 0.25);
+  border-radius: 14px;
+  padding: 0.35rem 0.4rem;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
 }
 
 .stage-grid {

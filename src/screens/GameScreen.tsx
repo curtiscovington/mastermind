@@ -140,6 +140,7 @@ const GameScreen = ({
   const [statusOpen, setStatusOpen] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
+  const [drawnRounds, setDrawnRounds] = useState<Record<number, boolean>>({});
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
   const roleDescription = you?.role
@@ -190,6 +191,7 @@ const GameScreen = ({
   const resolvedPowers = (room.syndicatePowersResolved ?? []) as SyndicatePower[];
   const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
   const canUsePowers = isDirector && room.phase === 'enactment' && !room.autoEnactment;
+  const hasDrawnThisRound = drawnRounds[room.round] ?? false;
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
@@ -219,12 +221,6 @@ const GameScreen = ({
   return (
     <div className="screen game-stage">
       <header className="stage-header">
-        <div>
-          <p className="eyebrow">Table status</p>
-          <div className="stage-status">
-            <span className="pill neutral">Round {room.round}</span>
-          </div>
-        </div>
         <div className="stage-header__actions">
           <button
             type="button"
@@ -278,43 +274,17 @@ const GameScreen = ({
               <h2>🗳️ Vote Flow</h2>
               <span className="chip chip-soft">Majority {majorityNeeded}</span>
             </div>
-            <ul className="list">
-              <li className="list-row">
-                <div>
-                  <p className="list-title">Director Candidate</p>
-                  <p className="muted">{directorCandidate?.displayName ?? 'Awaiting assignment'}</p>
-                </div>
-                <span className="pill neutral">{directorCandidate ? 'Chosen' : 'Pending'}</span>
-              </li>
-              <li className="list-row">
-                <div>
-                  <p className="list-title">Deputy Candidate</p>
-                  <p className="muted">{deputyCandidate?.displayName ?? 'No nomination yet'}</p>
-                </div>
-                <span className="pill neutral">{deputyCandidate ? 'Nominated' : 'Open'}</span>
-              </li>
-              <li className="list-row">
-                <div>
-                  <p className="list-title">Previous Director</p>
-                  <p className="muted">{previousDirector?.displayName ?? 'None yet'}</p>
-                </div>
-                <span className="pill neutral">History</span>
-              </li>
-              <li className="list-row">
-                <div>
-                  <p className="list-title">Instability</p>
-                  <p className="muted">{instability} / 3 failed votes</p>
-                </div>
-                <span className={instability >= 2 ? 'pill danger' : 'pill neutral'}>
-                  {instability >= 2 ? 'Critical' : 'Stable'}
-                </span>
-              </li>
-            </ul>
-            {room.autoEnactment ? (
-              <p className="muted">
-                Instability has peaked. A policy is auto-enacted after three failed votes.
-              </p>
-            ) : null}
+            <p className="muted">Open the table menu to review nominees and cast your vote.</p>
+            <div className="button-row">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setStatusOpen(true)}
+                aria-label="Open vote menu"
+              >
+                Go to vote menu
+              </button>
+            </div>
           </div>
 
           {room.phase === 'nomination' ? (
@@ -453,16 +423,23 @@ const GameScreen = ({
                               </li>
                             ))}
                           </ul>
-                        ) : (
+                      ) : (
                           <div className="stack">
                             <p className="muted">Draw three policy cards to start enactment.</p>
-                            <button
-                              className="secondary"
-                              onClick={onDrawPolicies}
-                              disabled={busyAction === 'draw'}
-                            >
-                              {busyAction === 'draw' ? 'Drawing…' : 'Draw Policies'}
-                            </button>
+                            {hasDrawnThisRound ? (
+                              <p className="muted">Policies for this cycle are already in motion.</p>
+                            ) : (
+                              <button
+                                className="secondary"
+                                onClick={async () => {
+                                  setDrawnRounds((prev) => ({ ...prev, [room.round]: true }));
+                                  await onDrawPolicies();
+                                }}
+                                disabled={busyAction === 'draw'}
+                              >
+                                {busyAction === 'draw' ? 'Drawing…' : 'Draw Policies'}
+                              </button>
+                            )}
                           </div>
                         )
                       ) : (
@@ -720,6 +697,75 @@ const GameScreen = ({
               </button>
             </div>
             <div className="overlay-content">
+              {room.phase === 'voting' ? (
+                <div className="overlay-section">
+                  <p className="overlay-section__title">🗳️ Vote Flow</p>
+                  <p className="overlay-lede">
+                    Review the ticket and cast your vote without cluttering the stage.
+                  </p>
+                  <ul className="overlay-list">
+                    <li className="overlay-list__item">
+                      <div>
+                        <p className="list-title">Director Candidate</p>
+                        <p className="overlay-meta">{directorCandidate?.displayName ?? 'Awaiting assignment'}</p>
+                      </div>
+                      <span className="pill neutral">{directorCandidate ? 'Chosen' : 'Pending'}</span>
+                    </li>
+                    <li className="overlay-list__item">
+                      <div>
+                        <p className="list-title">Deputy Candidate</p>
+                        <p className="overlay-meta">{deputyCandidate?.displayName ?? 'No nomination yet'}</p>
+                      </div>
+                      <span className="pill neutral">{deputyCandidate ? 'Nominated' : 'Open'}</span>
+                    </li>
+                    <li className="overlay-list__item">
+                      <div>
+                        <p className="list-title">Previous Director</p>
+                        <p className="overlay-meta">{previousDirector?.displayName ?? 'None yet'}</p>
+                      </div>
+                      <span className="pill neutral">History</span>
+                    </li>
+                    <li className="overlay-list__item">
+                      <div>
+                        <p className="list-title">Instability</p>
+                        <p className="overlay-meta">{instability} / 3 failed votes</p>
+                      </div>
+                      <span className={instability >= 2 ? 'pill danger' : 'pill neutral'}>
+                        {instability >= 2 ? 'Critical' : 'Stable'}
+                      </span>
+                    </li>
+                  </ul>
+                  {you?.alive ? (
+                    <div className="button-row">
+                      <button
+                        className="secondary"
+                        onClick={() => onSubmitVote('approve')}
+                        disabled={hasVoted || busyAction === 'vote'}
+                      >
+                        {hasVoted && voteTallies[you.id] === 'approve' ? 'Approved' : 'Approve'}
+                      </button>
+                      <button
+                        className="danger"
+                        onClick={() => onSubmitVote('reject')}
+                        disabled={hasVoted || busyAction === 'vote'}
+                      >
+                        {hasVoted && voteTallies[you.id] === 'reject' ? 'Rejected' : 'Reject'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="muted">You cannot vote while eliminated.</p>
+                  )}
+                  <p className="muted">
+                    Votes so far: Approve {approveCount} · Reject {rejectCount} (Majority {majorityNeeded})
+                  </p>
+                  {hasVoted ? <p className="muted">Vote recorded. Waiting for others…</p> : null}
+                  {room.autoEnactment ? (
+                    <p className="muted">
+                      Instability has peaked. A policy is auto-enacted after three failed votes.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="overlay-section">
                 <p className="overlay-section__title">Table snapshot</p>
                 <p className="overlay-lede">Quick access to the essentials without cluttering the stage.</p>
