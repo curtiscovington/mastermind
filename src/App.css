@@ -76,7 +76,8 @@ body {
   align-items: start;
   gap: 1.25rem;
   flex: 1;
-  max-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 2rem);
+  max-height: none;
   overflow: auto;
   overscroll-behavior: contain;
   background: linear-gradient(135deg, rgba(15, 22, 45, 0.9), rgba(8, 11, 26, 0.9));
@@ -624,6 +625,71 @@ button:not(:disabled):active {
   gap: 1.5rem;
 }
 
+.game-stage {
+  gap: 1.1rem;
+}
+
+.stage-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.15rem 0.5rem;
+  background: linear-gradient(180deg, rgba(12, 16, 32, 0.95), rgba(12, 16, 32, 0.85));
+  z-index: 2;
+  border-radius: 16px;
+  border: 1px solid rgba(126, 208, 255, 0.2);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.stage-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stage-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(126, 208, 255, 0.25);
+  background: rgba(14, 20, 42, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+}
+
+.stage-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stage-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.stage-panel {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.stage-panel--primary .card {
+  width: 100%;
+}
+
+.tempo-phase-strip.compact {
+  justify-content: flex-start;
+  margin-bottom: 0.35rem;
+}
+
 .game-header {
   position: sticky;
   top: 0;
@@ -713,8 +779,8 @@ button:not(:disabled):active {
 }
 
 .icon-button {
-  height: 42px;
-  width: 42px;
+  height: 44px;
+  width: 44px;
   display: grid;
   place-items: center;
   border-radius: 12px;
@@ -824,6 +890,62 @@ button:not(:disabled):active {
   margin-bottom: 0.75rem;
   display: flex;
   justify-content: flex-start;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 5, 14, 0.65), rgba(4, 9, 22, 0.85));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1.25rem;
+  z-index: 30;
+  backdrop-filter: blur(6px);
+}
+
+.overlay-panel {
+  width: min(620px, 100%);
+  background: linear-gradient(180deg, rgba(12, 17, 32, 0.92), rgba(9, 13, 26, 0.94));
+  border: 1px solid rgba(126, 208, 255, 0.25);
+  border-radius: 18px;
+  padding: 1.1rem 1rem 1.2rem;
+  box-shadow: 0 24px 45px rgba(0, 0, 0, 0.45), 0 0 20px rgba(111, 212, 255, 0.18);
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.overlay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.overlay-tile {
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(126, 208, 255, 0.18);
+  background: rgba(14, 20, 38, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.overlay-value {
+  margin: 0.35rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.overlay-value.code {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.1em;
 }
 
 .phase-tile {
@@ -973,6 +1095,10 @@ button:not(:disabled):active {
   .hud-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .stage-grid {
+    gap: 1.25rem;
+  }
 }
 
 @media (min-width: 720px) {
@@ -997,6 +1123,10 @@ button:not(:disabled):active {
 
   .hud-grid {
     grid-template-columns: 1.05fr 0.95fr 1.1fr;
+  }
+
+  .stage-grid {
+    grid-template-columns: 1.35fr 1fr;
   }
 }
 @media (min-width: 1280px) {
@@ -1028,6 +1158,14 @@ button:not(:disabled):active {
     gap: 0.5rem;
   }
 
+  .screen {
+    padding: 1rem 0.85rem 1.25rem;
+  }
+
+  .stage-grid {
+    gap: 0.85rem;
+  }
+
   .hud-bar__actions {
     width: 100%;
     justify-content: space-between;
@@ -1039,8 +1177,8 @@ button:not(:disabled):active {
   }
 
   .icon-button {
-    height: 38px;
-    width: 38px;
+    height: 44px;
+    width: 44px;
   }
 
   .hud-chip {

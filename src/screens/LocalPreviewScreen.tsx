@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import GameScreen from './GameScreen';
 import LobbyScreen from './LobbyScreen';
 import ResultsScreen from './ResultsScreen';
@@ -29,7 +29,10 @@ const LocalPreviewScreen = () => {
   const [clientId, setClientId] = useState<string>(previewClientIds[0] ?? persistedClientId);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [previewPlayers, setPreviewPlayers] = useState<Player[]>(previewScenarios[scenarioKey]?.players ?? []);
-  const [codenameDraft, setCodenameDraft] = useState('');
+  const [codenameDraft, setCodenameDraft] = useState(() => {
+    const initialClientId = previewClientIds[0] ?? persistedClientId;
+    return previewScenarios.lobby?.players.find((player) => player.clientId === initialClientId)?.displayName ?? '';
+  });
 
   const activeScenario = previewScenarios[scenarioKey];
   const effectiveClientId = clientId || persistedClientId;
@@ -37,28 +40,10 @@ const LocalPreviewScreen = () => {
     () => Array.from(new Set([persistedClientId, ...previewClientIds])),
     [persistedClientId],
   );
-  const you = useMemo(
-    () => previewPlayers.find((player) => player.clientId === effectiveClientId),
-    [effectiveClientId, previewPlayers],
-  );
   const missingCodenames = useMemo(
     () => previewPlayers.some((player) => !player.displayName?.trim()),
     [previewPlayers],
   );
-
-  useEffect(() => {
-    if (activeScenario) {
-      setPreviewPlayers(activeScenario.players);
-    }
-  }, [activeScenario]);
-
-  useEffect(() => {
-    if (you) {
-      setCodenameDraft(you.displayName ?? '');
-    } else {
-      setCodenameDraft('');
-    }
-  }, [you]);
 
   const simulate = useCallback(
     (action: string | null) =>
@@ -156,7 +141,14 @@ const LocalPreviewScreen = () => {
             <select
               value={scenarioKey}
               onChange={(event) => {
-                setScenarioKey(event.target.value as PreviewScenarioKey);
+                const nextScenarioKey = event.target.value as PreviewScenarioKey;
+                const nextPlayers = previewScenarios[nextScenarioKey]?.players ?? [];
+
+                setScenarioKey(nextScenarioKey);
+                setPreviewPlayers(nextPlayers);
+                setCodenameDraft(
+                  nextPlayers.find((player) => player.clientId === effectiveClientId)?.displayName ?? '',
+                );
                 setBusyAction(null);
               }}
             >
@@ -170,7 +162,16 @@ const LocalPreviewScreen = () => {
 
           <label className="field">
             <span>View as client</span>
-            <select value={effectiveClientId} onChange={(event) => setClientId(event.target.value)}>
+            <select
+              value={effectiveClientId}
+              onChange={(event) => {
+                const nextClientId = event.target.value;
+                setClientId(nextClientId);
+                setCodenameDraft(
+                  previewPlayers.find((player) => player.clientId === nextClientId)?.displayName ?? '',
+                );
+              }}
+            >
               {selectableClientIds.map((id) => (
                 <option key={id} value={id}>
                   {id}
