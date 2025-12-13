@@ -376,7 +376,9 @@ const RoomScreen = () => {
         if (roomData.autoEnactment) return;
 
         const directorHand = (roomData.directorHand ?? []) as PolicyCard[];
-        if (directorHand.length) return;
+        const deputyHand = (roomData.deputyHand ?? []) as PolicyCard[];
+
+        if (directorHand.length || deputyHand.length) return;
 
         const deck = (roomData.policyDeck ?? []) as PolicyCard[];
         const discard = (roomData.policyDiscard ?? []) as PolicyCard[];
