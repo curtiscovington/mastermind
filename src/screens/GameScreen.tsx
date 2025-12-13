@@ -144,6 +144,7 @@ const GameScreen = ({
 }: Props) => {
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
   const [infoOpen, setInfoOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
   const isOwner = room.ownerClientId === clientId;
@@ -151,6 +152,8 @@ const GameScreen = ({
     ? roleCopy[you.role] ?? 'Role assigned.'
     : 'Waiting for role assignment…';
   const teamLabel = you?.team ? teamCopy[you.team] ?? you.team : 'Unassigned';
+  const aliveLabel = you ? (you.alive ? 'Alive' : 'Eliminated') : 'Not seated';
+  const aliveTone = you ? (you.alive ? 'success' : 'danger') : 'neutral';
   const knownTeammates = you?.knownTeammateIds
     ? players.filter((player) => you.knownTeammateIds?.includes(player.id))
     : [];
@@ -292,37 +295,74 @@ const GameScreen = ({
           </summary>
 
           <div className="hud-column-body">
-            <div className="card emphasis">
-              <div className="card-header">
-                <h2>🎭 Your Role</h2>
-                <div className="chip-row">
+            <div className="role-reveal">
+              <div className="role-launcher">
+                <div>
+                  <p className="eyebrow">Your role</p>
+                  <p className="role-launcher__hint">Private card — tap the mask to reveal</p>
+                </div>
+                <div className="role-launcher__actions">
                   <span className="pill neutral">{teamLabel}</span>
-                  {you?.alive ? <span className="pill success">Alive</span> : <span className="pill danger">Eliminated</span>}
+                  <span className={`pill ${aliveTone}`}>{aliveLabel}</span>
+                  <button
+                    type="button"
+                    className={`icon-button role-button ${roleOpen ? 'is-active' : ''}`}
+                    aria-expanded={roleOpen}
+                    aria-controls="role-popover"
+                    onClick={() => setRoleOpen((open) => !open)}
+                    title="View your role"
+                  >
+                    🎭
+                    <span className="sr-only">{roleOpen ? 'Hide your role' : 'Show your role'}</span>
+                  </button>
                 </div>
               </div>
-              <p className="role-callout">{roleDescription}</p>
-              <p className="muted">Known team: {teamLabel}</p>
 
-              {you ? (
-                <div className="stack">
-                  <p className="muted">Known teammates</p>
-                  {knownTeammates.length ? (
-                    <ul className="list">
-                      {knownTeammates.map((player) => (
-                        <li key={player.id} className="list-row">
-                          <div>
-                            <p className="list-title">{player.displayName}</p>
-                            <p className="muted">{roleLabels[player.role ?? ''] ?? 'Unknown'}</p>
-                          </div>
-                          <span className={player.alive ? 'pill success' : 'pill danger'}>
-                            {player.alive ? 'Alive' : 'Eliminated'}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="muted">No teammates revealed to you yet.</p>
-                  )}
+              {roleOpen ? (
+                <div className="role-popover card emphasis" id="role-popover" role="dialog" aria-label="Your role details">
+                  <div className="card-header">
+                    <div>
+                      <p className="eyebrow">Role briefing</p>
+                      <h2>🎭 Your Role</h2>
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-button ghost"
+                      aria-label="Close role details"
+                      onClick={() => setRoleOpen(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="chip-row role-popover__chips">
+                    <span className="pill neutral">{teamLabel}</span>
+                    <span className={`pill ${aliveTone}`}>{aliveLabel}</span>
+                  </div>
+                  <p className="role-callout">{roleDescription}</p>
+                  <p className="muted">Known team: {teamLabel}</p>
+
+                  {you ? (
+                    <div className="stack">
+                      <p className="muted">Known teammates</p>
+                      {knownTeammates.length ? (
+                        <ul className="list">
+                          {knownTeammates.map((player) => (
+                            <li key={player.id} className="list-row">
+                              <div>
+                                <p className="list-title">{player.displayName}</p>
+                                <p className="muted">{roleLabels[player.role ?? ''] ?? 'Unknown'}</p>
+                              </div>
+                              <span className={player.alive ? 'pill success' : 'pill danger'}>
+                                {player.alive ? 'Alive' : 'Eliminated'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted">No teammates revealed to you yet.</p>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

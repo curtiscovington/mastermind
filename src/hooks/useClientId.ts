@@ -1,6 +1,5 @@
-import { useState } from 'react';
-
 const STORAGE_KEY = 'mastermindClientId';
+let cachedId: string | null = null;
 
 const createId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -24,7 +23,9 @@ const getStoredId = () => {
 };
 
 export const useClientId = () => {
-  const [clientId] = useState<string | null>(getStoredId);
+  if (!cachedId) {
+    cachedId = getStoredId();
+  }
 
-  return clientId;
+  return cachedId;
 };

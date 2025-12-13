@@ -6,7 +6,7 @@ import {
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { db } from '../firebase';
@@ -73,14 +73,35 @@ const WaitingStage = ({
   clientId,
   onStartGame,
   starting,
+  onUpdateCodename,
+  updatingCodename,
+  missingCodenames,
+  onChangeCodename,
+  codenameDraft,
 }: {
   room: Room;
   players: Player[];
   clientId: string;
   onStartGame: () => Promise<void>;
   starting: boolean;
+  onUpdateCodename: () => Promise<void>;
+  updatingCodename: boolean;
+  missingCodenames: boolean;
+  onChangeCodename: (value: string) => void;
+  codenameDraft: string;
 }) => (
-  <LobbyScreen room={room} players={players} clientId={clientId} onStartGame={onStartGame} starting={starting} />
+  <LobbyScreen
+    room={room}
+    players={players}
+    clientId={clientId}
+    onStartGame={onStartGame}
+    starting={starting}
+    onUpdateCodename={onUpdateCodename}
+    updatingCodename={updatingCodename}
+    missingCodenames={missingCodenames}
+    onChangeCodename={onChangeCodename}
+    codenameDraft={codenameDraft}
+  />
 );
 
 const ActiveStage = ({
@@ -137,6 +158,7 @@ const RoomScreen = () => {
   const { room, loading: roomLoading } = useRoom(roomId ?? '');
   const { players: roster, loading: playersLoading } = usePlayers(roomId ?? '');
   const [busy, setBusy] = useState<string | null>(null);
+  const [codenameDraft, setCodenameDraft] = useState('');
 
   const isFinished = room?.status === 'finished';
 
@@ -150,9 +172,22 @@ const RoomScreen = () => {
     [clientId, roster],
   );
 
+  useEffect(() => {
+    if (you?.displayName !== undefined) {
+      setCodenameDraft(you.displayName ?? '');
+    } else {
+      setCodenameDraft('');
+    }
+  }, [you]);
+
   const visiblePlayers = useMemo(
     () => (room ? shufflePlayers(roster, room.id) : roster),
     [roster, room],
+  );
+
+  const missingCodenames = useMemo(
+    () => roster.some((player) => !player.displayName?.trim()),
+    [roster],
   );
 
   const stage: RoomStage = useMemo(() => {
@@ -168,7 +203,7 @@ const RoomScreen = () => {
   }
 
   const handleStartGame = async () => {
-    if (!room || !isOwner || roster.length === 0 || isFinished) return;
+    if (!room || !isOwner || roster.length === 0 || isFinished || missingCodenames) return;
     setBusy('start');
 
     try {
@@ -208,6 +243,22 @@ const RoomScreen = () => {
       });
 
       await batch.commit();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleUpdateCodename = async () => {
+    if (!room || !you) return;
+    const trimmed = codenameDraft.trim();
+    if (trimmed.length < 2 || trimmed === you.displayName) return;
+    setBusy('codename');
+
+    try {
+      const playerRef = doc(db, 'rooms', room.id, 'players', you.id);
+      await updateDoc(playerRef, { displayName: trimmed, updatedAt: serverTimestamp() });
     } catch (err) {
       console.error(err);
     } finally {
@@ -804,6 +855,11 @@ const RoomScreen = () => {
           clientId={clientId}
           onStartGame={handleStartGame}
           starting={busy === 'start'}
+          onUpdateCodename={handleUpdateCodename}
+          updatingCodename={busy === 'codename'}
+          missingCodenames={missingCodenames}
+          onChangeCodename={setCodenameDraft}
+          codenameDraft={codenameDraft}
         />
       );
       break;
