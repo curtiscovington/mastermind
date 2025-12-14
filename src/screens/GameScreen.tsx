@@ -188,7 +188,7 @@ const GameScreen = ({
   const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
   const canUsePowers = isDirector && room.phase === 'enactment' && !room.autoEnactment;
   const hasDrawnThisRound = drawnRounds[room.round] ?? false;
-  const lastPowerPromptKey = useRef<string | null>(null);
+  const shouldForcePowerOverlay = canUsePowers && pendingPowers.length > 0;
 
   useEffect(() => {
     if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return;
@@ -201,21 +201,15 @@ const GameScreen = ({
   }, [room.id, room.phase, room.status, you?.id, you?.role]);
 
   useEffect(() => {
-    if (!pendingPowers.length || !canUsePowers) {
+    if (shouldForcePowerOverlay) {
+      setPowerOverlayOpen(true);
+      setStatusOpen(false);
+      setRoleModalOpen(false);
+      setPlayersOpen(false);
+    } else {
       setPowerOverlayOpen(false);
     }
-  }, [canUsePowers, pendingPowers.length]);
-
-  useEffect(() => {
-    if (!canUsePowers || !pendingPowers.length) return;
-
-    const promptKey = `${room.round}-${room.directorId}-${pendingPowers.join('|')}`;
-
-    if (lastPowerPromptKey.current !== promptKey) {
-      setPowerOverlayOpen(true);
-      lastPowerPromptKey.current = promptKey;
-    }
-  }, [canUsePowers, pendingPowers, room.directorId, room.round]);
+  }, [shouldForcePowerOverlay]);
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
