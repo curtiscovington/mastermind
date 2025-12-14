@@ -338,6 +338,8 @@ const RoomScreen = () => {
           updatedAt: serverTimestamp(),
         };
 
+        const syndicateEnacted = roomData.syndicatePoliciesEnacted ?? 0;
+
         if (approvals >= majority) {
           updates.phase = 'enactment';
           updates.directorId = room.directorCandidateId ?? null;
@@ -349,7 +351,7 @@ const RoomScreen = () => {
           updates.deputyHand = [];
 
           if (
-            roomData.syndicatePoliciesEnacted >= 3 &&
+            syndicateEnacted >= 3 &&
             roomData.deputyCandidateId
           ) {
             const deputyRef = doc(db, 'rooms', room.id, 'players', roomData.deputyCandidateId);
