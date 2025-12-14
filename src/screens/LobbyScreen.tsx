@@ -33,6 +33,7 @@ const LobbyScreen = ({
   const hasTooManyPlayers = players.length > maxPlayers;
   const you = useMemo(() => players.find((player) => player.clientId === clientId), [clientId, players]);
   const codenameReady = codenameDraft.trim().length >= 2;
+  const hideCodenames = room.status === 'lobby';
 
   const handleCodenameSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -85,24 +86,31 @@ const LobbyScreen = ({
         </form>
 
         <ul className="list">
-          {players.map((player) => (
-            <li key={player.id} className="list-row">
-              <div>
-                <p className="list-title">{player.displayName?.trim() || 'Awaiting codename'}</p>
-                <p className="muted">
-                  {player.clientId === clientId
-                    ? 'This is you'
-                    : player.displayName?.trim()
-                      ? 'Ready'
-                      : 'Needs a codename'}
-                </p>
-              </div>
-              <div>
-                {player.clientId === room.ownerClientId ? <span className="pill">Owner</span> : null}
-                {!player.displayName?.trim() ? <span className="pill">Set codename</span> : null}
-              </div>
-            </li>
-          ))}
+          {players.map((player, index) => {
+            const hasCodename = !!player.displayName?.trim();
+            const listTitle = hideCodenames
+              ? `Player ${index + 1}`
+              : player.displayName?.trim() || 'Awaiting codename';
+            const listSubtitle =
+              player.clientId === clientId
+                ? 'This is you'
+                : hasCodename
+                  ? 'Codename ready'
+                  : 'Needs a codename';
+
+            return (
+              <li key={player.id} className="list-row">
+                <div>
+                  <p className="list-title">{listTitle}</p>
+                  <p className="muted">{listSubtitle}</p>
+                </div>
+                <div>
+                  {player.clientId === room.ownerClientId ? <span className="pill">Owner</span> : null}
+                  {!player.displayName?.trim() ? <span className="pill">Set codename</span> : null}
+                </div>
+              </li>
+            );
+          })}
           {players.length === 0 ? <p className="muted">Waiting for players…</p> : null}
         </ul>
 
