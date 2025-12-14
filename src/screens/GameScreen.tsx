@@ -315,7 +315,11 @@ const GameScreen = ({
                           Choose a teammate
                         </option>
                         {alivePlayers
-                          .filter((player) => player.id !== directorCandidate.id)
+                          .filter(
+                            (player) =>
+                              player.id !== directorCandidate.id &&
+                              player.id !== room.previousDirectorId,
+                          )
                           .map((player) => (
                             <option key={player.id} value={player.id}>
                               {player.displayName}

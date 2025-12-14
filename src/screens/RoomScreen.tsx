@@ -46,6 +46,44 @@ const getNextDirectorCandidate = (
   return alivePlayers[nextIndex]?.id ?? null;
 };
 
+const getRandomDirectorCandidate = (roster: Player[]): string | null => {
+  const alivePlayers = roster.filter((player) => player.alive);
+  if (!alivePlayers.length) return null;
+
+  const randomIndex = Math.floor(Math.random() * alivePlayers.length);
+  return alivePlayers[randomIndex]?.id ?? null;
+};
+
+const prepareNextNominationUpdates = (roomData: Room, roster: Player[]): Record<string, unknown> => {
+  const previousDirectorId =
+    roomData.previousDirectorId ?? roomData.directorId ?? roomData.directorCandidateId ?? null;
+
+  let nextDirectorCandidateId = roomData.specialElectionDirectorId ?? null;
+  const designatedAlive = roster.find(
+    (player) => player.id === nextDirectorCandidateId && player.alive,
+  );
+
+  if (!designatedAlive) {
+    nextDirectorCandidateId = getNextDirectorCandidate(previousDirectorId, roster);
+  }
+
+  return {
+    phase: 'nomination',
+    directorCandidateId: nextDirectorCandidateId,
+    deputyCandidateId: null,
+    directorId: null,
+    deputyId: null,
+    previousDirectorId,
+    voteTallies: {},
+    instabilityCount: 0,
+    autoEnactment: false,
+    directorHand: [],
+    deputyHand: [],
+    round: (roomData.round ?? 0) + 1,
+    specialElectionDirectorId: null,
+  };
+};
+
 type RoomStage = 'loading' | 'waiting' | 'countdown' | 'in_progress' | 'finished' | 'not_found';
 
 const LoadingStage = () => (
@@ -197,7 +235,7 @@ const RoomScreen = () => {
       const assignments = assignRolesToPlayers(roster);
       const batch = writeBatch(db);
       const roomRef = doc(db, 'rooms', room.id);
-      const firstDirectorCandidate = getNextDirectorCandidate(null, roster);
+      const firstDirectorCandidate = getRandomDirectorCandidate(roster);
 
       assignments.forEach(({ playerId, role, team, knownTeammateIds }) => {
         const playerRef = doc(db, 'rooms', room.id, 'players', playerId);
@@ -255,6 +293,7 @@ const RoomScreen = () => {
 
   const handleNominateDeputy = async (deputyId: string) => {
     if (!room || !you || you.id !== room.directorCandidateId || isFinished) return;
+    if (deputyId === room.directorCandidateId || deputyId === room.previousDirectorId) return;
     setBusy('nominate');
 
     try {
@@ -286,7 +325,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         const existingTallies = (roomData.voteTallies ?? {}) as Record<string, VoteChoice>;
         const updatedTallies = { ...existingTallies, [you.id]: choice };
         const alivePlayers = roster.filter((player) => player.alive);
@@ -486,6 +525,18 @@ const RoomScreen = () => {
             : {}),
         };
 
+        if (!updates.status) {
+          const unlockedPowers = getUnlockedSyndicatePowers(updatedSyndicatePolicies);
+          const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+          const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
+
+          if (pendingPowers.length === 0) {
+            Object.assign(updates, prepareNextNominationUpdates(roomData as Room, roster));
+          } else {
+            updates.phase = 'enactment';
+          }
+        }
+
         transaction.update(roomRef, updates);
       });
     } catch (err) {
@@ -511,7 +562,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
@@ -527,11 +578,21 @@ const RoomScreen = () => {
         const results = (roomData.investigationResults ?? {}) as Record<string, Team>;
         const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'investigate']));
 
-        transaction.update(roomRef, {
+        const updates: Record<string, unknown> = {
           investigationResults: { ...results, [playerId]: targetData.team ?? null },
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+          (power) => !updatedResolved.includes(power),
+        );
+
+        if (pendingPowers.length === 0) {
+          Object.assign(updates, prepareNextNominationUpdates(roomData, roster));
+        }
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -555,7 +616,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
@@ -567,11 +628,21 @@ const RoomScreen = () => {
         const peek = availableDeck.slice(0, 3);
         const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'surveillance']));
 
-        transaction.update(roomRef, {
+        const updates: Record<string, unknown> = {
           surveillancePeek: peek,
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+          (power) => !updatedResolved.includes(power),
+        );
+
+        if (pendingPowers.length === 0) {
+          Object.assign(updates, prepareNextNominationUpdates(roomData, roster));
+        }
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -596,7 +667,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
@@ -615,11 +686,21 @@ const RoomScreen = () => {
           new Set<SyndicatePower>([...resolvedPowers, 'special_election']),
         );
 
-        transaction.update(roomRef, {
+        const updates: Record<string, unknown> = {
           specialElectionDirectorId: directorId,
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+          (power) => !updatedResolved.includes(power),
+        );
+
+        if (pendingPowers.length === 0) {
+          Object.assign(updates, prepareNextNominationUpdates(roomData, roster));
+        }
+
+        transaction.update(roomRef, updates);
       });
     } catch (err) {
       console.error(err);
@@ -644,7 +725,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
@@ -673,6 +754,17 @@ const RoomScreen = () => {
           updates.phase = 'finished';
         }
 
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+          (power) => !updatedResolved.includes(power),
+        );
+
+        if (!updates.status && pendingPowers.length === 0) {
+          const adjustedRoster = roster.map((player) =>
+            player.id === playerId ? { ...player, alive: false } : player,
+          );
+          Object.assign(updates, prepareNextNominationUpdates(roomData, adjustedRoster));
+        }
+
         transaction.update(roomRef, updates);
       });
     } catch (err) {
@@ -696,7 +788,7 @@ const RoomScreen = () => {
           throw new Error('Room not found');
         }
 
-        const roomData = snapshot.data();
+        const roomData = snapshot.data() as Room;
         if (!roomData.autoEnactment) return;
 
         const deck = (roomData.policyDeck ?? []) as PolicyCard[];
@@ -729,6 +821,10 @@ const RoomScreen = () => {
             ? { status: 'finished', phase: 'finished' }
             : {}),
         };
+
+        if (!updates.status) {
+          Object.assign(updates, prepareNextNominationUpdates(roomData, roster));
+        }
 
         transaction.update(roomRef, updates);
       });
