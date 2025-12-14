@@ -189,6 +189,7 @@ const GameScreen = ({
   const canUsePowers = isDirector && room.phase === 'enactment' && !room.autoEnactment;
   const hasDrawnThisRound = drawnRounds[room.round] ?? false;
   const shouldForcePowerOverlay = canUsePowers && pendingPowers.length > 0;
+  const shouldShowPowerOverlay = shouldForcePowerOverlay || powerOverlayOpen;
 
   useEffect(() => {
     if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return;
@@ -209,7 +210,7 @@ const GameScreen = ({
     } else {
       setPowerOverlayOpen(false);
     }
-  }, [shouldForcePowerOverlay]);
+  }, [powerOverlayOpen, shouldForcePowerOverlay]);
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
@@ -875,7 +876,7 @@ const GameScreen = ({
         </div>
       ) : null}
 
-      {powerOverlayOpen ? (
+      {shouldShowPowerOverlay ? (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="Director powers available">
           <div className="overlay-panel">
             <div className="overlay-header">
@@ -887,7 +888,12 @@ const GameScreen = ({
                 type="button"
                 className="icon-button ghost"
                 aria-label="Close director powers overlay"
-                onClick={() => setPowerOverlayOpen(false)}
+                onClick={() => {
+                  if (!shouldForcePowerOverlay) {
+                    setPowerOverlayOpen(false);
+                  }
+                }}
+                disabled={shouldForcePowerOverlay}
               >
                 ✕
               </button>
