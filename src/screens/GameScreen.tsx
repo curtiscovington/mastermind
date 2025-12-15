@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { GamePhase, Player, Room, SyndicatePower, VoteChoice } from '../types';
 import { getUnlockedSyndicatePowers } from '../utils/game';
@@ -141,8 +141,8 @@ const GameScreen = ({
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
   const [powerOverlayOpen, setPowerOverlayOpen] = useState(false);
+  const [dismissedRolePromptKey, setDismissedRolePromptKey] = useState<string | null>(null);
   const [drawnRounds, setDrawnRounds] = useState<Record<number, boolean>>({});
-  const lastRolePromptKey = useRef<string | null>(null);
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
   const roleDescription = you?.role
@@ -191,26 +191,16 @@ const GameScreen = ({
   const shouldForcePowerOverlay = canUsePowers && pendingPowers.length > 0;
   const shouldShowPowerOverlay = shouldForcePowerOverlay || powerOverlayOpen;
 
-  useEffect(() => {
-    if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return;
-    const promptKey = `${room.id}-${you.id}-${you.role}`;
-
-    if (lastRolePromptKey.current !== promptKey) {
-      setRoleModalOpen(true);
-      lastRolePromptKey.current = promptKey;
-    }
+  const currentRolePromptKey = useMemo(() => {
+    if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return null;
+    return `${room.id}-${you.id}-${you.role}`;
   }, [room.id, room.phase, room.status, you?.id, you?.role]);
 
-  useEffect(() => {
-    if (shouldForcePowerOverlay) {
-      setPowerOverlayOpen(true);
-      setStatusOpen(false);
-      setRoleModalOpen(false);
-      setPlayersOpen(false);
-    } else {
-      setPowerOverlayOpen(false);
-    }
-  }, [powerOverlayOpen, shouldForcePowerOverlay]);
+  const shouldAutoOpenRoleModal =
+    Boolean(currentRolePromptKey) && dismissedRolePromptKey !== currentRolePromptKey;
+  const roleOverlayOpen = !shouldShowPowerOverlay && (roleModalOpen || shouldAutoOpenRoleModal);
+  const statusOverlayOpen = statusOpen && !shouldShowPowerOverlay;
+  const playersOverlayOpen = playersOpen && !shouldShowPowerOverlay;
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
@@ -446,31 +436,34 @@ const GameScreen = ({
         <div className="stage-header__actions">
           <button
             type="button"
-            className={`icon-button ${statusOpen ? 'is-active' : ''}`}
+            className={`icon-button ${statusOverlayOpen ? 'is-active' : ''}`}
             aria-haspopup="dialog"
-            aria-expanded={statusOpen}
+            aria-expanded={statusOverlayOpen}
             aria-label="Open table menu"
             onClick={() => setStatusOpen((open) => !open)}
+            disabled={shouldShowPowerOverlay}
           >
             ☰
           </button>
           <button
             type="button"
-            className={`icon-button role-button ${roleModalOpen ? 'is-active' : ''}`}
+            className={`icon-button role-button ${roleOverlayOpen ? 'is-active' : ''}`}
             aria-haspopup="dialog"
-            aria-expanded={roleModalOpen}
+            aria-expanded={roleOverlayOpen}
             aria-label="Show your role and teammates"
             onClick={() => setRoleModalOpen(true)}
+            disabled={shouldShowPowerOverlay}
           >
             🎭
           </button>
           <button
             type="button"
-            className={`icon-button ${playersOpen ? 'is-active' : ''}`}
+            className={`icon-button ${playersOverlayOpen ? 'is-active' : ''}`}
             aria-haspopup="dialog"
-            aria-expanded={playersOpen}
+            aria-expanded={playersOverlayOpen}
             aria-label="Show players"
             onClick={() => setPlayersOpen(true)}
+            disabled={shouldShowPowerOverlay}
           >
             👥
           </button>
@@ -709,7 +702,7 @@ const GameScreen = ({
         </section>
       </div>
 
-      {statusOpen ? (
+      {statusOverlayOpen ? (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="Table menu">
           <div className="overlay-panel">
             <div className="overlay-header">
@@ -768,7 +761,7 @@ const GameScreen = ({
         </div>
       ) : null}
 
-      {roleModalOpen ? (
+      {roleOverlayOpen ? (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="Your role details">
           <div className="overlay-panel">
             <div className="overlay-header">
@@ -780,7 +773,12 @@ const GameScreen = ({
                 type="button"
                 className="icon-button ghost"
                 aria-label="Close role details"
-                onClick={() => setRoleModalOpen(false)}
+                onClick={() => {
+                  if (currentRolePromptKey) {
+                    setDismissedRolePromptKey(currentRolePromptKey);
+                  }
+                  setRoleModalOpen(false);
+                }}
               >
                 ✕
               </button>
@@ -822,7 +820,7 @@ const GameScreen = ({
         </div>
       ) : null}
 
-      {playersOpen ? (
+      {playersOverlayOpen ? (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="Players list">
           <div className="overlay-panel">
             <div className="overlay-header">
