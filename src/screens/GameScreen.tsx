@@ -486,14 +486,14 @@ const GameScreen = ({
           {room.phase === 'nomination' ? (
             <div className="card">
               <div className="card-header">
-                <h2>🎯 Nominate a Deputy</h2>
+                <h2>🎯 Nominate a Global Operative</h2>
                 <span className="chip chip-soft">Director picks</span>
               </div>
               {directorCandidate ? (
                 you?.id === directorCandidate.id ? (
                   <form className="stack" onSubmit={handleNominationSubmit}>
                     <label className="field">
-                      <span>Select a Deputy</span>
+                      <span>Select a Global Operative</span>
                       <select
                         value={selectedDeputyId}
                         onChange={(event) =>
@@ -521,16 +521,16 @@ const GameScreen = ({
                       </select>
                     </label>
                     <button type="submit" className="primary" disabled={!selectedDeputyId || busyAction === 'nominate'}>
-                      {busyAction === 'nominate' ? 'Submitting…' : 'Nominate Deputy'}
+                      {busyAction === 'nominate' ? 'Submitting…' : 'Nominate Global Operative'}
                     </button>
                   </form>
                 ) : (
                   <p className="muted">
-                    Waiting for {directorCandidate.displayName} to nominate a Deputy.
+                    Waiting for {directorCandidate.displayName} to nominate a Global Operative.
                   </p>
                 )
               ) : (
-                <p className="muted">No director is available to nominate a Deputy.</p>
+                <p className="muted">No director is available to nominate a Global Operative.</p>
               )}
             </div>
           ) : null}
@@ -542,7 +542,7 @@ const GameScreen = ({
                 <span className="chip chip-soft">Majority needs {majorityNeeded}</span>
               </div>
               <p className="muted">
-                Director {directorCandidate?.displayName ?? 'Unknown'} nominated Deputy{' '}
+                Director {directorCandidate?.displayName ?? 'Unknown'} nominated Global Operative{' '}
                 {deputyCandidate?.displayName ?? 'Unknown'}.
               </p>
               <p className="muted">Votes remain hidden until every agent has submitted their choice.</p>
@@ -590,7 +590,7 @@ const GameScreen = ({
               ) : (
                 <>
                   <p className="muted">
-                    Director {directorCandidate?.displayName ?? 'Unknown'} and Deputy{' '}
+                    Director {directorCandidate?.displayName ?? 'Unknown'} and Global Operative{' '}
                     {deputyCandidate?.displayName ?? 'Unknown'} are handling policy cards.
                   </p>
                   {isDirector ? (
@@ -642,7 +642,7 @@ const GameScreen = ({
                   {isDeputy ? (
                     <div className="card nested-card">
                       <div className="card-header">
-                        <h3>Deputy Hand</h3>
+                        <h3>Global Operative Hand</h3>
                         <span className="pill neutral">Discard &amp; enact</span>
                       </div>
                       {deputyHand.length === 2 ? (
@@ -672,7 +672,7 @@ const GameScreen = ({
                   {!isDirector && !isDeputy ? (
                     <div className="stack">
                       <p className="muted">Waiting for the Director to resolve their draw.</p>
-                      <p className="muted">Waiting for the Deputy to enact a policy.</p>
+                      <p className="muted">Waiting for the Global Operative to enact a policy.</p>
                     </div>
                   ) : null}
                 </>

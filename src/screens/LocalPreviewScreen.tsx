@@ -9,11 +9,11 @@ import type { Player } from '../types';
 const busyActionOptions: { value: string | null; label: string }[] = [
   { value: null, label: 'No busy state' },
   { value: 'start', label: 'Starting game' },
-  { value: 'nominate', label: 'Nominating deputy' },
+  { value: 'nominate', label: 'Nominating Global Operative' },
   { value: 'vote', label: 'Submitting vote' },
   { value: 'draw', label: 'Drawing policies' },
   { value: 'director-discard-1', label: 'Director discarding' },
-  { value: 'deputy-enact-0', label: 'Deputy enacting' },
+  { value: 'deputy-enact-0', label: 'Global Operative enacting' },
   { value: 'investigate-player-1', label: 'Investigating' },
   { value: 'surveillance', label: 'Using surveillance' },
   { value: 'special-election-player-2', label: 'Calling special election' },

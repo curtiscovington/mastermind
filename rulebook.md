@@ -25,7 +25,7 @@ Suggested player-count role mixes:
 Each round proceeds through these phases:
 
 ### 1) Leadership Nomination
-- The current **Director** nominates a **Deputy** who is not the previous Director. The Director and Deputy form the **Council** for the round.
+- The current **Director** nominates a **Global Operative** who is not the previous Director. The Director and Global Operative form the **Council** for the round.
 - Pass the Director placard clockwise each round unless a special power overrides it.
 
 ### 2) Voting
@@ -33,8 +33,8 @@ Each round proceeds through these phases:
 - If majority approves (ties fail), the Council stands and play advances. If rejected, advance the Director placard to the next player and increase the **Instability marker** by one; after three consecutive rejections, top-deck and enact the next policy automatically, then reset Instability and continue with the next Director.
 
 ### 3) Policy Enactment
-- The Director draws the top three policy cards. Without revealing them, they discard one face-down to the discard pile and pass two to the Deputy.
-- The Deputy secretly discards one and enacts the remaining policy face-up to the appropriate track.
+- The Director draws the top three policy cards. Without revealing them, they discard one face-down to the discard pile and pass two to the Global Operative.
+- The Global Operative secretly discards one and enacts the remaining policy face-up to the appropriate track.
 - If the policy deck has fewer than three cards, shuffle the discard pile to form a new deck before drawing.
 
 ### 4) Special Powers
@@ -46,15 +46,15 @@ Certain Syndicate policy thresholds grant the Director one of these powers immed
 
 ## Win Conditions
 - **Agency Victory:** Enact five Agency policies **or** execute the Mastermind.
-- **Syndicate Victory:** Enact six Syndicate policies **or** elect the Mastermind as Deputy after three (or more) Syndicate policies are already on the board.
+- **Syndicate Victory:** Enact six Syndicate policies **or** elect the Mastermind as Global Operative after three (or more) Syndicate policies are already on the board.
 
 ## Player Counts & Timing
 - Recommended range: **5–10 players**. Lower counts play faster and have fewer investigative powers; higher counts add more Syndicate Agents and more special powers.
 - Expect 45–90 minutes depending on player familiarity and table talk.
 
 ## Quick Reference Flow
-1. Director nominates Deputy.
+1. Director nominates Global Operative.
 2. Table votes to approve Council.
-3. If approved: Director draws 3, discards 1; Deputy discards 1, enacts 1.
+3. If approved: Director draws 3, discards 1; Global Operative discards 1, enacts 1.
 4. Resolve special power if unlocked.
 5. Check win conditions; otherwise pass (or assign) Director and repeat.
