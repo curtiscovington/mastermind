@@ -103,7 +103,11 @@ const LocalPreviewScreen = () => {
         onDirectorDiscard={(cardIndex: number) => simulate(`director-discard-${cardIndex}`)}
         onDeputyEnact={(cardIndex: number) => simulate(`deputy-enact-${cardIndex}`)}
         onAutoEnactPolicy={() => simulate('auto-enact')}
-        onInvestigatePlayer={(playerId: string) => simulate(`investigate-${playerId}`)}
+        onInvestigatePlayer={async (playerId: string) => {
+          await simulate(`investigate-${playerId}`);
+          const target = previewPlayers.find((player) => player.id === playerId);
+          return { playerId, team: target?.team ?? null };
+        }}
         onUseSurveillance={() => simulate('surveillance')}
         onSpecialElection={(directorId: string) => simulate(`special-election-${directorId}`)}
         onPurgePlayer={(playerId: string) => simulate(`purge-${playerId}`)}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { GamePhase, Player, Room, SyndicatePower, VoteChoice } from '../types';
+import type { GamePhase, Player, Room, SyndicatePower, Team, VoteChoice } from '../types';
 import { getUnlockedSyndicatePowers } from '../utils/game';
 
 type Props = {
@@ -13,7 +13,9 @@ type Props = {
   onDirectorDiscard: (cardIndex: number) => Promise<void>;
   onDeputyEnact: (cardIndex: number) => Promise<void>;
   onAutoEnactPolicy: () => Promise<void>;
-  onInvestigatePlayer: (playerId: string) => Promise<void>;
+  onInvestigatePlayer: (
+    playerId: string,
+  ) => Promise<{ playerId: string; team: Team | null } | null>;
   onUseSurveillance: () => Promise<void>;
   onSpecialElection: (directorId: string) => Promise<void>;
   onPurgePlayer: (playerId: string) => Promise<void>;
@@ -151,6 +153,7 @@ const GameScreen = ({
   const teamLabel = you?.team ? teamCopy[you.team] ?? you.team : 'Unassigned';
   const aliveLabel = you ? (you.alive ? 'Alive' : 'Eliminated') : 'Not seated';
   const aliveTone = you ? (you.alive ? 'success' : 'danger') : 'neutral';
+  const isEliminated = Boolean(you && !you.alive);
   const knownTeammates = you?.knownTeammateIds
     ? players.filter((player) => you.knownTeammateIds?.includes(player.id))
     : [];
@@ -175,11 +178,14 @@ const GameScreen = ({
   const deputyHand = room.deputyHand ?? [];
   const isDirector = you?.id === room.directorId;
   const isDeputy = you?.id === room.deputyId;
-  const investigationResults = room.investigationResults ?? {};
   const surveillancePeek = room.surveillancePeek ?? [];
   const [investigationTarget, setInvestigationTarget] = useState('');
   const [specialElectionTarget, setSpecialElectionTarget] = useState('');
   const [purgeTarget, setPurgeTarget] = useState('');
+  const [investigationReveal, setInvestigationReveal] = useState<{
+    targetName: string;
+    team: Team | null;
+  } | null>(null);
   const unlockedPowers = useMemo(
     () => getUnlockedSyndicatePowers(syndicateEnacted),
     [syndicateEnacted],
@@ -190,6 +196,8 @@ const GameScreen = ({
   const hasDrawnThisRound = drawnRounds[room.round] ?? false;
   const shouldForcePowerOverlay = canUsePowers && pendingPowers.length > 0;
   const shouldShowPowerOverlay = shouldForcePowerOverlay || powerOverlayOpen;
+  const shouldRenderPowerOverlay = shouldShowPowerOverlay && !isEliminated;
+  const overlaysActive = shouldShowPowerOverlay || Boolean(investigationReveal) || isEliminated;
 
   const currentRolePromptKey = useMemo(() => {
     if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return null;
@@ -198,12 +206,30 @@ const GameScreen = ({
 
   const shouldAutoOpenRoleModal =
     Boolean(currentRolePromptKey) && dismissedRolePromptKey !== currentRolePromptKey;
-  const roleOverlayOpen = !shouldShowPowerOverlay && (roleModalOpen || shouldAutoOpenRoleModal);
-  const statusOverlayOpen = statusOpen && !shouldShowPowerOverlay;
-  const playersOverlayOpen = playersOpen && !shouldShowPowerOverlay;
+  const roleOverlayOpen =
+    !shouldShowPowerOverlay &&
+    !investigationReveal &&
+    !isEliminated &&
+    (roleModalOpen || shouldAutoOpenRoleModal);
+  const statusOverlayOpen = statusOpen && !shouldShowPowerOverlay && !investigationReveal && !isEliminated;
+  const playersOverlayOpen = playersOpen && !shouldShowPowerOverlay && !investigationReveal && !isEliminated;
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
+
+  const handleInvestigate = async () => {
+    if (!investigationTarget) return;
+
+    const result = await onInvestigatePlayer(investigationTarget);
+    if (result) {
+      const target = players.find((player) => player.id === result.playerId);
+      setInvestigationReveal({
+        targetName: target?.displayName ?? 'Unknown agent',
+        team: result.team,
+      });
+      setInvestigationTarget('');
+    }
+  };
 
   const handleNominationSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -286,7 +312,7 @@ const GameScreen = ({
                     </select>
                     <button
                       className="primary"
-                      onClick={() => investigationTarget && onInvestigatePlayer(investigationTarget)}
+                      onClick={handleInvestigate}
                       disabled={!investigationTarget || busyAction === `investigate-${investigationTarget}`}
                     >
                       {busyAction === `investigate-${investigationTarget}` ? 'Investigating…' : 'Investigate'}
@@ -383,29 +409,6 @@ const GameScreen = ({
         <p className="muted">No unresolved Director powers at the moment.</p>
       )}
 
-      {Object.keys(investigationResults).length ? (
-        <div className="stack">
-          <p className="muted">Recorded investigations (visible to Directors).</p>
-          {isDirector ? (
-            <ul className="list">
-              {Object.entries(investigationResults).map(([playerId, result]) => {
-                const target = players.find((player) => player.id === playerId);
-                return (
-                  <li key={playerId} className="list-row">
-                    <div>
-                      <p className="list-title">{target?.displayName ?? 'Unknown player'}</p>
-                      <p className="muted">{result === 'agency' ? 'Agency' : 'Syndicate-aligned'}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="muted">Investigations have been logged.</p>
-          )}
-        </div>
-      ) : null}
-
       {surveillancePeek.length && isDirector ? (
         <div className="stack">
           <p className="muted">Top of deck (from Surveillance):</p>
@@ -441,7 +444,7 @@ const GameScreen = ({
             aria-expanded={statusOverlayOpen}
             aria-label="Open table menu"
             onClick={() => setStatusOpen((open) => !open)}
-            disabled={shouldShowPowerOverlay}
+            disabled={overlaysActive}
           >
             ☰
           </button>
@@ -452,7 +455,7 @@ const GameScreen = ({
             aria-expanded={roleOverlayOpen}
             aria-label="Show your role and teammates"
             onClick={() => setRoleModalOpen(true)}
-            disabled={shouldShowPowerOverlay}
+            disabled={overlaysActive}
           >
             🎭
           </button>
@@ -463,7 +466,7 @@ const GameScreen = ({
             aria-expanded={playersOverlayOpen}
             aria-label="Show players"
             onClick={() => setPlayersOpen(true)}
-            disabled={shouldShowPowerOverlay}
+            disabled={overlaysActive}
           >
             👥
           </button>
@@ -874,7 +877,71 @@ const GameScreen = ({
         </div>
       ) : null}
 
-      {shouldShowPowerOverlay ? (
+      {investigationReveal ? (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Investigation result">
+          <div className="overlay-panel">
+            <div className="overlay-header">
+              <div>
+                <p className="eyebrow">Investigation complete</p>
+                <h2>Intel Revealed</h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button ghost"
+                aria-label="Dismiss investigation result"
+                onClick={() => setInvestigationReveal(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overlay-content">
+              <p className="overlay-lede">
+                You only see this intel once. Make note of it before closing.
+              </p>
+              <div className="overlay-section overlay-section--row">
+                <div className="overlay-section__body">
+                  <p className="overlay-section__title">{investigationReveal.targetName}</p>
+                  <p className="role-callout">
+                    {investigationReveal.team === 'agency'
+                      ? 'Agency'
+                      : investigationReveal.team === 'syndicate'
+                        ? 'Syndicate-aligned'
+                        : 'Alignment hidden'}
+                  </p>
+                  <p className="muted">This result vanishes once you close it.</p>
+                </div>
+              </div>
+              <div className="button-row">
+                <button className="primary" onClick={() => setInvestigationReveal(null)}>
+                  Acknowledge intel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isEliminated && room.status !== 'finished' ? (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Eliminated status">
+          <div className="overlay-panel">
+            <div className="overlay-header">
+              <div>
+                <p className="eyebrow">Director eliminated</p>
+                <h2>
+                  {you?.displayName ? `Codename ${you.displayName}` : 'Eliminated operative'}
+                </h2>
+              </div>
+            </div>
+            <div className="overlay-content">
+              <p className="overlay-lede">
+                You are out of the game. You cannot vote, be nominated, or take any further actions.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {shouldRenderPowerOverlay ? (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="Director powers available">
           <div className="overlay-panel">
             <div className="overlay-header">

@@ -37,13 +37,19 @@ const getNextDirectorCandidate = (
     return alivePlayers[0]?.id ?? null;
   }
 
-  const currentIndex = alivePlayers.findIndex((player) => player.id === currentDirectorId);
+  const currentIndex = roster.findIndex((player) => player.id === currentDirectorId);
   if (currentIndex === -1) {
     return alivePlayers[0]?.id ?? null;
   }
 
-  const nextIndex = (currentIndex + 1) % alivePlayers.length;
-  return alivePlayers[nextIndex]?.id ?? null;
+  for (let offset = 1; offset <= roster.length; offset += 1) {
+    const candidate = roster[(currentIndex + offset) % roster.length];
+    if (candidate.alive) {
+      return candidate.id;
+    }
+  }
+
+  return alivePlayers[0]?.id ?? null;
 };
 
 const getRandomDirectorCandidate = (roster: Player[]): string | null => {
@@ -75,6 +81,7 @@ const prepareNextNominationUpdates = (roomData: Room, roster: Player[]): Record<
     deputyId: null,
     previousDirectorId,
     voteTallies: {},
+    investigationResults: {},
     instabilityCount: 0,
     autoEnactment: false,
     directorHand: [],
@@ -153,7 +160,9 @@ const ActiveStage = ({
     onDirectorDiscard: (cardIndex: number) => Promise<void>;
     onDeputyEnact: (cardIndex: number) => Promise<void>;
     onAutoEnactPolicy: () => Promise<void>;
-    onInvestigatePlayer: (playerId: string) => Promise<void>;
+    onInvestigatePlayer: (
+      playerId: string,
+    ) => Promise<{ playerId: string; team: Team | null } | null>;
     onUseSurveillance: () => Promise<void>;
     onSpecialElection: (directorId: string) => Promise<void>;
     onPurgePlayer: (playerId: string) => Promise<void>;
@@ -294,6 +303,8 @@ const RoomScreen = () => {
   const handleNominateDeputy = async (deputyId: string) => {
     if (!room || !you || you.id !== room.directorCandidateId || isFinished) return;
     if (deputyId === room.directorCandidateId || deputyId === room.previousDirectorId) return;
+    const deputy = roster.find((player) => player.id === deputyId);
+    if (!deputy || !deputy.alive) return;
     setBusy('nominate');
 
     try {
@@ -329,12 +340,16 @@ const RoomScreen = () => {
         const existingTallies = (roomData.voteTallies ?? {}) as Record<string, VoteChoice>;
         const updatedTallies = { ...existingTallies, [you.id]: choice };
         const alivePlayers = roster.filter((player) => player.alive);
-        const approvals = Object.values(updatedTallies).filter((vote) => vote === 'approve').length;
-        const rejections = Object.values(updatedTallies).filter((vote) => vote === 'reject').length;
+        const aliveIds = new Set(alivePlayers.map((player) => player.id));
+        const filteredTallies = Object.fromEntries(
+          Object.entries(updatedTallies).filter(([playerId]) => aliveIds.has(playerId)),
+        );
+        const approvals = Object.values(filteredTallies).filter((vote) => vote === 'approve').length;
+        const rejections = Object.values(filteredTallies).filter((vote) => vote === 'reject').length;
         const majority = Math.floor(alivePlayers.length / 2) + 1;
 
         const updates: Record<string, unknown> = {
-          voteTallies: updatedTallies,
+          voteTallies: filteredTallies,
           updatedAt: serverTimestamp(),
         };
 
@@ -367,7 +382,7 @@ const RoomScreen = () => {
           }
         } else if (
           rejections >= majority ||
-          Object.keys(updatedTallies).length >= alivePlayers.length
+          Object.keys(filteredTallies).length >= alivePlayers.length
         ) {
           const newInstability = (room.instabilityCount ?? 0) + 1;
           const reachedChaos = newInstability >= 3;
@@ -548,16 +563,18 @@ const RoomScreen = () => {
     }
   };
 
-  const handleInvestigatePlayer = async (playerId: string) => {
+  const handleInvestigatePlayer = async (
+    playerId: string,
+  ): Promise<{ playerId: string; team: Team | null } | null> => {
     if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
-      return;
+      return null;
     setBusy(`investigate-${playerId}`);
 
     try {
       const roomRef = doc(db, 'rooms', room.id);
       const targetRef = doc(db, 'rooms', room.id, 'players', playerId);
 
-      await runTransaction(db, async (transaction) => {
+      const result = await runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(roomRef);
 
         if (!snapshot.exists()) {
@@ -568,7 +585,7 @@ const RoomScreen = () => {
         const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
-        if (!unlockedPowers.includes('investigate') || resolvedPowers.includes('investigate')) return;
+        if (!unlockedPowers.includes('investigate') || resolvedPowers.includes('investigate')) return null;
 
         const targetSnap = await transaction.get(targetRef);
 
@@ -577,11 +594,10 @@ const RoomScreen = () => {
         }
 
         const targetData = targetSnap.data() as Player;
-        const results = (roomData.investigationResults ?? {}) as Record<string, Team>;
+        if (!targetData.alive) return null;
         const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'investigate']));
 
         const updates: Record<string, unknown> = {
-          investigationResults: { ...results, [playerId]: targetData.team ?? null },
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
         };
@@ -595,9 +611,13 @@ const RoomScreen = () => {
         }
 
         transaction.update(roomRef, updates);
+        return { playerId, team: targetData.team ?? null };
       });
+
+      return result ?? null;
     } catch (err) {
       console.error(err);
+      return null;
     } finally {
       setBusy(null);
     }
