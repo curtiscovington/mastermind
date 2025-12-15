@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { GamePhase, Player, Room, SyndicatePower, VoteChoice } from '../types';
 import { getUnlockedSyndicatePowers } from '../utils/game';
@@ -140,8 +140,9 @@ const GameScreen = ({
   const [statusOpen, setStatusOpen] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
-  const [drawnRounds, setDrawnRounds] = useState<Record<number, boolean>>({});
   const [powerOverlayOpen, setPowerOverlayOpen] = useState(false);
+  const [drawnRounds, setDrawnRounds] = useState<Record<number, boolean>>({});
+  const lastRolePromptKey = useRef<string | null>(null);
   const selectedDeputyId = room.deputyCandidateId ?? deputySelections[room.round] ?? '';
   const you = useMemo(() => players.find((p) => p.clientId === clientId), [clientId, players]);
   const roleDescription = you?.role
@@ -187,18 +188,34 @@ const GameScreen = ({
   const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
   const canUsePowers = isDirector && room.phase === 'enactment' && !room.autoEnactment;
   const hasDrawnThisRound = drawnRounds[room.round] ?? false;
-  const shouldForcePowerOverlay = canUsePowers && pendingPowers.length > 0;
+  const lastPowerPromptKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (shouldForcePowerOverlay) {
-      setPowerOverlayOpen(true);
-      setStatusOpen(false);
-      setRoleModalOpen(false);
-      setPlayersOpen(false);
-    } else {
+    if (!you?.role || room.phase === 'lobby' || room.status === 'finished') return;
+    const promptKey = `${room.id}-${you.id}-${you.role}`;
+
+    if (lastRolePromptKey.current !== promptKey) {
+      setRoleModalOpen(true);
+      lastRolePromptKey.current = promptKey;
+    }
+  }, [room.id, room.phase, room.status, you?.id, you?.role]);
+
+  useEffect(() => {
+    if (!pendingPowers.length || !canUsePowers) {
       setPowerOverlayOpen(false);
     }
-  }, [shouldForcePowerOverlay]);
+  }, [canUsePowers, pendingPowers.length]);
+
+  useEffect(() => {
+    if (!canUsePowers || !pendingPowers.length) return;
+
+    const promptKey = `${room.round}-${room.directorId}-${pendingPowers.join('|')}`;
+
+    if (lastPowerPromptKey.current !== promptKey) {
+      setPowerOverlayOpen(true);
+      lastPowerPromptKey.current = promptKey;
+    }
+  }, [canUsePowers, pendingPowers, room.directorId, room.round]);
 
   const formatPolicyLabel = (card: string) =>
     card === 'syndicate' ? 'Syndicate Policy' : 'Agency Policy';
@@ -253,132 +270,180 @@ const GameScreen = ({
     );
   };
 
-  const renderPendingPowerList = () =>
-    pendingPowers.length ? (
-      <ul className="list">
-        {pendingPowers.map((power) => (
-          <li key={power} className="list-row">
-            <div>
-              <p className="list-title">{powerCopy[power]?.title ?? power}</p>
-              <p className="muted">{powerCopy[power]?.description ?? 'Special power available.'}</p>
-            </div>
-            {power === 'investigate' ? (
-              canUsePowers ? (
-                <div className="list-actions">
-                  <select
-                    value={investigationTarget}
-                    onChange={(event) => setInvestigationTarget(event.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      Select target
-                    </option>
-                    {alivePlayers
-                      .filter((player) => player.id !== you?.id)
-                      .map((player) => (
-                        <option key={player.id} value={player.id}>
-                          {player.displayName}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    className="primary"
-                    onClick={() => investigationTarget && onInvestigatePlayer(investigationTarget)}
-                    disabled={!investigationTarget || busyAction === `investigate-${investigationTarget}`}
-                  >
-                    {busyAction === `investigate-${investigationTarget}` ? 'Investigating…' : 'Investigate'}
-                  </button>
-                </div>
-              ) : (
-                <span className="pill neutral">Director will resolve</span>
-              )
-            ) : null}
-            {power === 'surveillance' ? (
-              canUsePowers ? (
-                <button
-                  className="secondary"
-                  onClick={onUseSurveillance}
-                  disabled={busyAction === 'surveillance'}
-                >
-                  {busyAction === 'surveillance' ? 'Revealing…' : 'Reveal Top Policies'}
-                </button>
-              ) : (
-                <span className="pill neutral">Director will resolve</span>
-              )
-            ) : null}
-            {power === 'special_election' ? (
-              canUsePowers ? (
-                <div className="list-actions">
-                  <select
-                    value={specialElectionTarget}
-                    onChange={(event) => setSpecialElectionTarget(event.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      Choose next Director
-                    </option>
-                    {alivePlayers
-                      .filter((player) => player.id !== you?.id)
-                      .map((player) => (
-                        <option key={player.id} value={player.id}>
-                          {player.displayName}
-                        </option>
-                      ))}
-                  </select>
+  const directorPowersBody = (
+    <>
+      {pendingPowers.length ? (
+        <ul className="list">
+          {pendingPowers.map((power) => (
+            <li key={power} className="list-row">
+              <div>
+                <p className="list-title">{powerCopy[power]?.title ?? power}</p>
+                <p className="muted">{powerCopy[power]?.description ?? 'Special power available.'}</p>
+              </div>
+              {power === 'investigate' ? (
+                canUsePowers ? (
+                  <div className="list-actions">
+                    <select
+                      value={investigationTarget}
+                      onChange={(event) => setInvestigationTarget(event.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select target
+                      </option>
+                      {alivePlayers
+                        .filter((player) => player.id !== you?.id)
+                        .map((player) => (
+                          <option key={player.id} value={player.id}>
+                            {player.displayName}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      className="primary"
+                      onClick={() => investigationTarget && onInvestigatePlayer(investigationTarget)}
+                      disabled={!investigationTarget || busyAction === `investigate-${investigationTarget}`}
+                    >
+                      {busyAction === `investigate-${investigationTarget}` ? 'Investigating…' : 'Investigate'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="pill neutral">Director will resolve</span>
+                )
+              ) : null}
+              {power === 'surveillance' ? (
+                canUsePowers ? (
                   <button
                     className="secondary"
-                    onClick={() => specialElectionTarget && onSpecialElection(specialElectionTarget)}
-                    disabled={
-                      !specialElectionTarget ||
-                      busyAction === `special-election-${specialElectionTarget}`
-                    }
+                    onClick={onUseSurveillance}
+                    disabled={busyAction === 'surveillance'}
                   >
-                    {busyAction === `special-election-${specialElectionTarget}`
-                      ? 'Assigning…'
-                      : 'Assign Director'}
+                    {busyAction === 'surveillance' ? 'Revealing…' : 'Reveal Top Policies'}
                   </button>
-                </div>
-              ) : (
-                <span className="pill neutral">Director will resolve</span>
-              )
-            ) : null}
-            {power === 'purge' ? (
-              canUsePowers ? (
-                <div className="list-actions">
-                  <select
-                    value={purgeTarget}
-                    onChange={(event) => setPurgeTarget(event.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      Choose a player to eliminate
-                    </option>
-                    {alivePlayers
-                      .filter((player) => player.id !== you?.id)
-                      .map((player) => (
-                        <option key={player.id} value={player.id}>
-                          {player.displayName}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    className="danger"
-                    onClick={() => purgeTarget && onPurgePlayer(purgeTarget)}
-                    disabled={busyAction === `purge-${purgeTarget}` || !purgeTarget}
-                  >
-                    {busyAction === `purge-${purgeTarget}` ? 'Eliminating…' : 'Purge Player'}
-                  </button>
-                </div>
-              ) : (
-                <span className="pill neutral">Director will resolve</span>
-              )
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="muted">No unresolved Director powers at the moment.</p>
-    );
+                ) : (
+                  <span className="pill neutral">Director will resolve</span>
+                )
+              ) : null}
+              {power === 'special_election' ? (
+                canUsePowers ? (
+                  <div className="list-actions">
+                    <select
+                      value={specialElectionTarget}
+                      onChange={(event) => setSpecialElectionTarget(event.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Choose next Director
+                      </option>
+                      {alivePlayers
+                        .filter((player) => player.id !== you?.id)
+                        .map((player) => (
+                          <option key={player.id} value={player.id}>
+                            {player.displayName}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      className="secondary"
+                      onClick={() => specialElectionTarget && onSpecialElection(specialElectionTarget)}
+                      disabled={
+                        !specialElectionTarget ||
+                        busyAction === `special-election-${specialElectionTarget}`
+                      }
+                    >
+                      {busyAction === `special-election-${specialElectionTarget}`
+                        ? 'Assigning…'
+                        : 'Assign Director'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="pill neutral">Director will resolve</span>
+                )
+              ) : null}
+              {power === 'purge' ? (
+                canUsePowers ? (
+                  <div className="list-actions">
+                    <select
+                      value={purgeTarget}
+                      onChange={(event) => setPurgeTarget(event.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Choose a player to eliminate
+                      </option>
+                      {alivePlayers
+                        .filter((player) => player.id !== you?.id)
+                        .map((player) => (
+                          <option key={player.id} value={player.id}>
+                            {player.displayName}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      className="danger"
+                      onClick={() => purgeTarget && onPurgePlayer(purgeTarget)}
+                      disabled={busyAction === `purge-${purgeTarget}` || !purgeTarget}
+                    >
+                      {busyAction === `purge-${purgeTarget}` ? 'Eliminating…' : 'Purge Player'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="pill neutral">Director will resolve</span>
+                )
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No unresolved Director powers at the moment.</p>
+      )}
+
+      {Object.keys(investigationResults).length ? (
+        <div className="stack">
+          <p className="muted">Recorded investigations (visible to Directors).</p>
+          {isDirector ? (
+            <ul className="list">
+              {Object.entries(investigationResults).map(([playerId, result]) => {
+                const target = players.find((player) => player.id === playerId);
+                return (
+                  <li key={playerId} className="list-row">
+                    <div>
+                      <p className="list-title">{target?.displayName ?? 'Unknown player'}</p>
+                      <p className="muted">{result === 'agency' ? 'Agency' : 'Syndicate-aligned'}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="muted">Investigations have been logged.</p>
+          )}
+        </div>
+      ) : null}
+
+      {surveillancePeek.length && isDirector ? (
+        <div className="stack">
+          <p className="muted">Top of deck (from Surveillance):</p>
+          <ul className="list">
+            {surveillancePeek.map((card, index) => (
+              <li key={index} className="list-row">
+                <p className="list-title">{formatPolicyLabel(card)}</p>
+                <span className="pill neutral">Position {index + 1}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {room.specialElectionDirectorId ? (
+        <p className="muted">
+          Special election in effect. Next Director:
+          {' '}
+          {players.find((player) => player.id === room.specialElectionDirectorId)?.displayName ?? 'Chosen player'}
+        </p>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="screen game-stage">
@@ -644,52 +709,7 @@ const GameScreen = ({
               <h2>🛰️ Director Powers</h2>
               <span className="chip chip-soft">Unlocked via Syndicate thresholds</span>
             </div>
-            {renderPendingPowerList()}
-
-            {Object.keys(investigationResults).length ? (
-              <div className="stack">
-                <p className="muted">Recorded investigations (visible to Directors).</p>
-                {isDirector ? (
-                  <ul className="list">
-                    {Object.entries(investigationResults).map(([playerId, result]) => {
-                      const target = players.find((player) => player.id === playerId);
-                      return (
-                        <li key={playerId} className="list-row">
-                          <div>
-                            <p className="list-title">{target?.displayName ?? 'Unknown player'}</p>
-                            <p className="muted">{result === 'agency' ? 'Agency' : 'Syndicate-aligned'}</p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="muted">Investigations have been logged.</p>
-                )}
-              </div>
-            ) : null}
-
-            {surveillancePeek.length && isDirector ? (
-              <div className="stack">
-                <p className="muted">Top of deck (from Surveillance):</p>
-                <ul className="list">
-                  {surveillancePeek.map((card, index) => (
-                    <li key={index} className="list-row">
-                      <p className="list-title">{formatPolicyLabel(card)}</p>
-                      <span className="pill neutral">Position {index + 1}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {room.specialElectionDirectorId ? (
-              <p className="muted">
-                Special election in effect. Next Director:
-                {' '}
-                {players.find((player) => player.id === room.specialElectionDirectorId)?.displayName ?? 'Chosen player'}
-              </p>
-            ) : null}
+            {directorPowersBody}
           </div>
         </section>
       </div>
@@ -862,19 +882,27 @@ const GameScreen = ({
       ) : null}
 
       {powerOverlayOpen ? (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Director power resolution">
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Director powers available">
           <div className="overlay-panel">
             <div className="overlay-header">
               <div>
-                <p className="eyebrow">Director action required</p>
-                <h2>Resolve Syndicate Power</h2>
+                <p className="eyebrow">Director action needed</p>
+                <h2>Resolve Director Powers</h2>
               </div>
+              <button
+                type="button"
+                className="icon-button ghost"
+                aria-label="Close director powers overlay"
+                onClick={() => setPowerOverlayOpen(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className="overlay-content">
               <p className="overlay-lede">
-                A Director power just unlocked and must be resolved before play advances.
+                You have pending Director powers to resolve before the table can advance.
               </p>
-              {renderPendingPowerList()}
+              {directorPowersBody}
             </div>
           </div>
         </div>
