@@ -1,15 +1,19 @@
 import { doc, runTransaction, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { useClientIdContext } from '../contexts/ClientContext';
 import { usePlayers, useRoom } from '../hooks/useRoomData';
 import LobbyScreen from './LobbyScreen';
 import GameScreen from './GameScreen';
 import ResultsScreen from './ResultsScreen';
+import ActionButton from '../components/ActionButton';
+import NominationRejectedPanel from '../components/NominationRejectedPanel';
+import Ring from '../components/Ring';
 import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers } from '../utils/game';
 import type { Player, PolicyCard, Room, SyndicatePower, Team, VoteChoice } from '../types';
+import './MastermindMockScreen.css';
 
 const shufflePlayers = (players: Player[], seed: string) => {
   if (!seed) return players;
@@ -100,10 +104,31 @@ const LoadingStage = () => (
 );
 
 const MissingRoomStage = () => (
-  <div className="screen">
-    <p className="muted">Room not found.</p>
-  </div>
+  <MissingRoomRedirect />
 );
+
+const MissingRoomRedirect = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="mm-frame" aria-label="Room not found">
+      <main className="mm-dashboard" aria-label="Redirecting">
+        <Ring>
+          <NominationRejectedPanel
+            title="Room not found"
+            detail="This room no longer exists. Use the button below to return home."
+          />
+        </Ring>
+      </main>
+
+      <footer className="mm-bottom" aria-label="Return home">
+        <ActionButton variant="green" onClick={() => navigate('/', { replace: true })}>
+          Go to Home
+        </ActionButton>
+      </footer>
+    </div>
+  );
+};
 
 const WaitingStage = ({
   room,
