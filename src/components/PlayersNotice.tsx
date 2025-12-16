@@ -6,6 +6,8 @@ export type PlayersNoticePlayer = {
   id: string;
   name: string;
   iconClassName?: string;
+  tag?: string;
+  tagClassName?: string;
 };
 
 export type PlayersNoticeProps = {
@@ -54,7 +56,21 @@ const PlayersNotice = ({
               <div className="mm-players-notice__icon" aria-hidden>
                 <i className={player.iconClassName ?? 'fas fa-user'} aria-hidden />
               </div>
-              <p className="mm-players-notice__name">{player.name}</p>
+              <div className="mm-players-notice__meta">
+                <p className="mm-players-notice__name">{player.name}</p>
+                {player.tag ? (
+                  <span
+                    className={[
+                      'mm-players-notice__tag',
+                      player.tagClassName ? player.tagClassName : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {player.tag}
+                  </span>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>
@@ -64,4 +80,3 @@ const PlayersNotice = ({
 };
 
 export default PlayersNotice;
-

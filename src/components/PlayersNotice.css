@@ -26,6 +26,14 @@
   gap: 10px;
 }
 
+.mm-players-notice__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
 .mm-players-notice__icon {
   width: 34px;
   height: 34px;
@@ -48,3 +56,14 @@
   white-space: nowrap;
 }
 
+.mm-players-notice__tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}

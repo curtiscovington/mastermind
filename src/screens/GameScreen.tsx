@@ -47,10 +47,8 @@ const roleNoticeRoleFor = (player: Player | undefined) => {
 };
 
 const iconForPlayer = (room: Room, player: Player) => {
-  if (player.role === 'mastermind') return 'fas fa-chess-king';
   if (player.id === room.directorId || player.id === room.directorCandidateId) return 'fas fa-user-tie';
   if (player.id === room.deputyId || player.id === room.deputyCandidateId) return 'fas fa-user-secret';
-  if (player.role === 'syndicate_agent') return 'fas fa-user-secret';
   return 'fas fa-user';
 };
 
@@ -157,12 +155,19 @@ const GameScreen = ({
 
   const playersNoticeList = useMemo(
     () =>
-      players.map((player) => ({
-        id: player.id,
-        name: player.displayName || 'Unknown',
-        iconClassName: iconForPlayer(room, player),
-      })),
-    [players, room],
+      players.map((player) => {
+        const teammateKnown = Boolean(
+          you?.team === 'syndicate' && you.knownTeammateIds?.includes(player.id),
+        );
+
+        return {
+          id: player.id,
+          name: player.displayName || 'Unknown',
+          iconClassName: iconForPlayer(room, player),
+          tag: teammateKnown ? 'Teammate' : undefined,
+        };
+      }),
+    [players, room, you?.knownTeammateIds, you?.team],
   );
 
   const powerTargets = useMemo(

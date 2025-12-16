@@ -139,24 +139,20 @@ export const assignRolesToPlayers = (players: Player[]): PlayerAssignment[] => {
     assignments.push({ playerId: player.id, role, team, knownTeammateIds: [] });
   });
 
-  const mastermind = assignments.find((assignment) => assignment.role === 'mastermind');
   const syndicateAgents = assignments.filter((assignment) => assignment.role === 'syndicate_agent');
   const mastermindShouldKnowTeam = players.length <= mastermindKnowsTeamThreshold;
 
-  // Syndicate agents know each other and the mastermind. The mastermind may or may not know the agents
-  // depending on player count (to mirror Secret Hitler's knowledge rules).
+  // Syndicate agents know each other (but not the mastermind). The mastermind may or may not know the agents
+  // depending on player count (mirrors the optional "blind mastermind" variant in the rulebook).
   assignments.forEach((assignment) => {
     if (assignment.role === 'mastermind') {
       assignment.knownTeammateIds = mastermindShouldKnowTeam
         ? syndicateAgents.map((agent) => agent.playerId)
         : [];
     } else if (assignment.role === 'syndicate_agent') {
-      assignment.knownTeammateIds = [
-        ...syndicateAgents
-          .filter((agent) => agent.playerId !== assignment.playerId)
-          .map((agent) => agent.playerId),
-        ...(mastermind ? [mastermind.playerId] : []),
-      ];
+      assignment.knownTeammateIds = syndicateAgents
+        .filter((agent) => agent.playerId !== assignment.playerId)
+        .map((agent) => agent.playerId);
     }
   });
 
