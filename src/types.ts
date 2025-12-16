@@ -42,6 +42,7 @@ export interface Room {
   syndicatePowersResolved?: SyndicatePower[];
   investigationResults?: Record<string, Team>;
   surveillancePeek?: PolicyCard[];
+  surveillancePeekPending?: boolean;
   specialElectionDirectorId?: string | null;
 }
 

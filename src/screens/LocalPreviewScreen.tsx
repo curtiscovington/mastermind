@@ -16,6 +16,7 @@ const busyActionOptions: { value: string | null; label: string }[] = [
   { value: 'deputy-enact-0', label: 'Global Operative enacting' },
   { value: 'investigate-player-1', label: 'Investigating' },
   { value: 'surveillance', label: 'Using surveillance' },
+  { value: 'surveillance-ack', label: 'Acknowledging surveillance' },
   { value: 'special-election-player-2', label: 'Calling special election' },
   { value: 'purge-player-5', label: 'Purging a player' },
   { value: 'auto-enact', label: 'Auto enact (owner only)' },
@@ -109,6 +110,7 @@ const LocalPreviewScreen = () => {
           return { playerId, team: target?.team ?? null };
         }}
         onUseSurveillance={() => simulate('surveillance')}
+        onAcknowledgeSurveillance={() => simulate('surveillance-ack')}
         onSpecialElection={(directorId: string) => simulate(`special-election-${directorId}`)}
         onPurgePlayer={(playerId: string) => simulate(`purge-${playerId}`)}
         busyAction={busyAction}

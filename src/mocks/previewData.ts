@@ -126,6 +126,7 @@ const enactmentRoom: Room = {
     'player-5': 'agency',
   },
   surveillancePeek: ['agency', 'syndicate', 'agency'],
+  surveillancePeekPending: true,
 };
 
 const autoEnactRoom: Room = {
