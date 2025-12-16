@@ -1,0 +1,138 @@
+.mm-candidates-vote {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  position: relative;
+  --mm-nomination-y: -62px;
+  --mm-vote-y: 92px;
+}
+
+.mm-candidates-vote__nomination {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(var(--mm-nomination-y));
+  transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-candidates-vote__vote {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(260px, 100%);
+  transform: translate(-50%, -50%) translateY(var(--mm-vote-y));
+}
+
+.mm-candidates-vote.is-animating-in .mm-player-row--director,
+.mm-candidates-vote.is-animating-in .mm-candidates-divider,
+.mm-candidates-vote.is-animating-in .mm-player-row--global {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: mm-vote-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.mm-candidates-vote.is-animating-in .mm-player-row--director {
+  animation-delay: 0ms;
+}
+
+.mm-candidates-vote.is-animating-in .mm-candidates-divider {
+  animation-delay: 180ms;
+}
+
+.mm-candidates-vote.is-animating-in .mm-player-row--global {
+  animation-delay: 360ms;
+}
+
+.mm-candidates-vote.is-animating-in .mm-vote__buttons {
+  opacity: 0;
+  transform: scale(0.6);
+  transform-origin: center;
+  animation: mm-vote-expand 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 1880ms;
+  will-change: opacity, transform;
+}
+
+@keyframes mm-vote-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mm-vote-expand {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mm-candidates-vote.is-animating-in .mm-candidates-vote__nomination {
+  transform: translate(-50%, -50%);
+  animation: mm-nomination-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 900ms;
+  will-change: transform;
+}
+
+.mm-candidates-vote.is-vote-cast.is-animating-in .mm-candidates-vote__nomination {
+  animation: none;
+  transform: translate(-50%, -50%);
+}
+
+.mm-candidates-vote.is-vote-cast .mm-candidates-vote__nomination {
+  transform: translate(-50%, -50%);
+}
+
+@keyframes mm-nomination-rise {
+  from {
+    transform: translate(-50%, -50%);
+  }
+  to {
+    transform: translate(-50%, -50%) translateY(var(--mm-nomination-y));
+  }
+}
+
+.mm-candidates-vote.is-animating-in .mm-candidates-vote__vote {
+  transform: translate(-50%, -50%);
+  animation: mm-vote-drop 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 1880ms;
+  will-change: transform;
+}
+
+@keyframes mm-vote-drop {
+  from {
+    transform: translate(-50%, -50%);
+  }
+  to {
+    transform: translate(-50%, -50%) translateY(var(--mm-vote-y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-candidates-vote.is-animating-in .mm-player-row--director,
+  .mm-candidates-vote.is-animating-in .mm-candidates-divider,
+  .mm-candidates-vote.is-animating-in .mm-player-row--global,
+  .mm-candidates-vote.is-animating-in .mm-vote__buttons {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .mm-candidates-vote.is-animating-in .mm-candidates-vote__nomination {
+    animation: none;
+    transform: translate(-50%, -50%) translateY(var(--mm-nomination-y));
+  }
+
+  .mm-candidates-vote.is-animating-in .mm-candidates-vote__vote {
+    animation: none;
+    transform: translate(-50%, -50%) translateY(var(--mm-vote-y));
+  }
+}

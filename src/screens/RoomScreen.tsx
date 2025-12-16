@@ -543,7 +543,7 @@ const RoomScreen = () => {
         };
 
         if (!updates.status) {
-          const unlockedPowers = getUnlockedSyndicatePowers(updatedSyndicatePolicies);
+          const unlockedPowers = getUnlockedSyndicatePowers(updatedSyndicatePolicies, roster.length);
           const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
           const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
 
@@ -582,7 +582,7 @@ const RoomScreen = () => {
         }
 
         const roomData = snapshot.data() as Room;
-        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
         if (!unlockedPowers.includes('investigate') || resolvedPowers.includes('investigate')) return null;
@@ -602,7 +602,7 @@ const RoomScreen = () => {
           updatedAt: serverTimestamp(),
         };
 
-        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length).filter(
           (power) => !updatedResolved.includes(power),
         );
 
@@ -639,7 +639,7 @@ const RoomScreen = () => {
         }
 
         const roomData = snapshot.data() as Room;
-        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
         if (!unlockedPowers.includes('surveillance') || resolvedPowers.includes('surveillance')) return;
@@ -656,7 +656,7 @@ const RoomScreen = () => {
           updatedAt: serverTimestamp(),
         };
 
-        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length).filter(
           (power) => !updatedResolved.includes(power),
         );
 
@@ -690,7 +690,7 @@ const RoomScreen = () => {
         }
 
         const roomData = snapshot.data() as Room;
-        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
         if (!unlockedPowers.includes('special_election') || resolvedPowers.includes('special_election')) return;
@@ -714,7 +714,7 @@ const RoomScreen = () => {
           updatedAt: serverTimestamp(),
         };
 
-        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length).filter(
           (power) => !updatedResolved.includes(power),
         );
 
@@ -748,7 +748,7 @@ const RoomScreen = () => {
         }
 
         const roomData = snapshot.data() as Room;
-        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0);
+        const unlockedPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length);
         const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
 
         if (!unlockedPowers.includes('purge') || resolvedPowers.includes('purge')) return;
@@ -776,7 +776,7 @@ const RoomScreen = () => {
           updates.phase = 'finished';
         }
 
-        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0).filter(
+        const pendingPowers = getUnlockedSyndicatePowers(roomData.syndicatePoliciesEnacted ?? 0, roster.length).filter(
           (power) => !updatedResolved.includes(power),
         );
 

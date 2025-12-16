@@ -1,0 +1,50 @@
+.mm-players-notice__content {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.mm-players-notice__title {
+  margin: 0;
+  font-size: 12px;
+  color: #aab;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mm-players-notice__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.mm-players-notice__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mm-players-notice__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mm-players-notice__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

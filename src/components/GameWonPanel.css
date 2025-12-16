@@ -1,0 +1,153 @@
+.mm-game-won {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  animation: mm-game-won-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mm-game-won__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
+}
+
+.mm-game-won__icon i {
+  font-size: 24px;
+}
+
+.mm-game-won--agency .mm-game-won__icon {
+  border-color: rgba(0, 242, 255, 0.35);
+  box-shadow: 0 0 18px rgba(0, 242, 255, 0.16), 0 0 42px rgba(0, 242, 255, 0.06);
+}
+
+.mm-game-won--agency .mm-game-won__icon i {
+  color: var(--mm-neon-blue, #00f2ff);
+  text-shadow: 0 0 12px rgba(0, 242, 255, 0.35);
+}
+
+.mm-game-won--syndicate .mm-game-won__icon {
+  border-color: rgba(255, 51, 51, 0.35);
+  box-shadow: 0 0 18px rgba(255, 51, 51, 0.16), 0 0 42px rgba(255, 51, 51, 0.06);
+}
+
+.mm-game-won--syndicate .mm-game-won__icon i {
+  color: var(--mm-neon-red, #ff3333);
+  text-shadow: 0 0 12px rgba(255, 51, 51, 0.35);
+}
+
+.mm-game-won__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.mm-game-won__reason {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 240, 255, 0.78);
+}
+
+.mm-game-won__detail {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(232, 240, 255, 0.78);
+  max-width: 34ch;
+}
+
+.mm-game-won__roster {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mm-game-won__roster-title {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 240, 255, 0.72);
+}
+
+.mm-game-won__roster-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mm-game-won__roster-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mm-game-won__roster-item--mastermind {
+  flex: 1 1 100%;
+  justify-content: center;
+  border-color: rgba(255, 51, 51, 0.28);
+  box-shadow: 0 0 18px rgba(255, 51, 51, 0.12);
+}
+
+.mm-game-won__roster-role {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.mm-game-won--syndicate .mm-game-won__roster-item i {
+  color: var(--mm-neon-red, #ff3333);
+}
+
+.mm-game-won--agency .mm-game-won__roster-item i {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+@keyframes mm-game-won-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-game-won {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,134 @@
+.mm-enact {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  z-index: 1;
+  transition: opacity 320ms ease, transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-enact.is-exiting {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  pointer-events: none;
+}
+
+.mm-enact__cards {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-enact.is-sent .mm-enact__cards {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.mm-enact__actions {
+  width: min(260px, 100%);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-enact.is-sent .mm-enact__actions {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.mm-enact__sent {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(232, 240, 255, 0.82);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-enact__sent.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mm-policy-card {
+  width: 92px;
+  height: 128px;
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+  padding: 12px 10px;
+  display: grid;
+  align-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 140ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.mm-policy-card:hover {
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
+}
+
+.mm-policy-card:active {
+  transform: scale(0.99);
+}
+
+.mm-policy-card__badge {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mm-policy-card__name {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mm-policy-card--agency {
+  border-color: rgba(0, 242, 255, 0.3);
+  background: linear-gradient(135deg, rgba(0, 242, 255, 0.14), rgba(0, 0, 0, 0.45));
+}
+
+.mm-policy-card--agency .mm-policy-card__name {
+  color: rgba(0, 242, 255, 0.9);
+  text-shadow: 0 0 10px rgba(0, 242, 255, 0.18);
+}
+
+.mm-policy-card--syndicate {
+  border-color: rgba(255, 51, 51, 0.3);
+  background: linear-gradient(135deg, rgba(255, 51, 51, 0.14), rgba(0, 0, 0, 0.45));
+}
+
+.mm-policy-card--syndicate .mm-policy-card__name {
+  color: rgba(255, 51, 51, 0.92);
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.18);
+}
+
+.mm-policy-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-policy-card,
+  .mm-enact__sent,
+  .mm-enact__actions,
+  .mm-enact__cards,
+  .mm-enact {
+    transition: none;
+  }
+}

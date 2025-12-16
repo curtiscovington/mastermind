@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { GamePhase, Player, Room, SyndicatePower, Team, VoteChoice } from '../types';
-import { getUnlockedSyndicatePowers } from '../utils/game';
+import { getSyndicatePowerThresholds, getUnlockedSyndicatePowers } from '../utils/game';
 
 type Props = {
   room: Room;
@@ -187,8 +187,8 @@ const GameScreen = ({
     team: Team | null;
   } | null>(null);
   const unlockedPowers = useMemo(
-    () => getUnlockedSyndicatePowers(syndicateEnacted),
-    [syndicateEnacted],
+    () => getUnlockedSyndicatePowers(syndicateEnacted, players.length),
+    [players.length, syndicateEnacted],
   );
   const resolvedPowers = (room.syndicatePowersResolved ?? []) as SyndicatePower[];
   const pendingPowers = unlockedPowers.filter((power) => !resolvedPowers.includes(power));
@@ -238,12 +238,15 @@ const GameScreen = ({
     }
   };
 
-  const policyThresholds: { count: number; label: string }[] = [
-    { count: 1, label: 'Investigate' },
-    { count: 2, label: 'Surveillance' },
-    { count: 3, label: 'Special Election' },
-    { count: 4, label: 'Purge' },
-  ];
+  const policyThresholds: { count: number; label: string }[] = useMemo(() => {
+    const thresholds = getSyndicatePowerThresholds(players.length);
+    return [
+      { count: thresholds.investigate, label: 'Investigate' },
+      { count: thresholds.surveillance, label: 'Surveillance' },
+      { count: thresholds.special_election, label: 'Special Election' },
+      { count: thresholds.purge, label: 'Purge' },
+    ].sort((a, b) => a.count - b.count);
+  }, [players.length]);
 
   const renderPolicyTrack = () => {
     const agencyProgress = Math.min(agencyEnacted, 6) * (100 / 12);
