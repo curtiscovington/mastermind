@@ -1,0 +1,32 @@
+.mm-investigation__content {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.mm-investigation__label {
+  margin: 0;
+  font-size: 12px;
+  color: #aab;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mm-investigation__target {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+}
+
+.mm-investigation__team {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 242, 255, 0.9);
+}
+

@@ -43,6 +43,7 @@ const GameWonPanel = ({
   label = 'Game over',
   title,
   detail,
+  mastermindName,
   syndicateMembers,
   className,
   ...rest
