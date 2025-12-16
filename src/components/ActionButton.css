@@ -1,0 +1,125 @@
+.mm-btn {
+  border: none;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: white;
+  letter-spacing: 0.06em;
+  transition: transform 0.1s;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.mm-btn:active {
+  transform: scale(0.98);
+}
+
+.mm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mm-btn--approve {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 65, 0.1),
+    rgba(0, 255, 65, 0.4),
+    rgba(0, 255, 65, 0.1)
+  );
+  border: 1px solid var(--mm-neon-green);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.7);
+}
+
+.mm-btn--reject {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 51, 51, 0.1),
+    rgba(255, 51, 51, 0.4),
+    rgba(255, 51, 51, 0.1)
+  );
+  border: 1px solid var(--mm-neon-red);
+  box-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+  text-shadow: 0 0 5px rgba(255, 51, 51, 0.75);
+}
+
+.mm-btn--approve::after,
+.mm-btn--reject::after {
+  content: '';
+  position: absolute;
+  top: -35%;
+  bottom: -35%;
+  width: 42%;
+  left: -60%;
+  transform: skewX(-20deg);
+  opacity: 0.75;
+  pointer-events: none;
+  animation: mm-shimmer 2.6s ease-in-out infinite;
+}
+
+.mm-btn--reject::after {
+  animation-delay: -1.3s;
+}
+
+.mm-btn--approve::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 35%,
+    rgba(0, 255, 65, 0.28) 55%,
+    rgba(255, 255, 255, 0.12) 70%,
+    transparent 100%
+  );
+}
+
+.mm-btn--reject::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 35%,
+    rgba(255, 51, 51, 0.28) 55%,
+    rgba(255, 255, 255, 0.12) 70%,
+    transparent 100%
+  );
+}
+
+.mm-btn--approve:active::after,
+.mm-btn--reject:active::after {
+  opacity: 0.9;
+}
+
+@keyframes mm-shimmer {
+  0% {
+    left: -60%;
+  }
+  50% {
+    left: 105%;
+  }
+  100% {
+    left: 105%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-btn--approve::after,
+  .mm-btn--reject::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.mm-btn.is-selected {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 3px;
+}
+

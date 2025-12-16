@@ -1,0 +1,33 @@
+.mm-auto-enact {
+  width: min(320px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  z-index: 1;
+}
+
+.mm-auto-enact__icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 170, 0, 0.55);
+  background: rgba(50, 20, 0, 0.45);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 210, 150, 0.92);
+  box-shadow: 0 0 18px rgba(255, 170, 0, 0.15);
+}
+
+.mm-auto-enact__icon i {
+  font-size: 26px;
+}
+
+.mm-auto-enact__message {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 240, 255, 0.78);
+}
+

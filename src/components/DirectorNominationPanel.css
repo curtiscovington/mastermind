@@ -1,0 +1,111 @@
+.mm-nomination {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  justify-items: center;
+  z-index: 1;
+  transition: opacity 320ms ease, transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-nomination.is-exiting {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  pointer-events: none;
+}
+
+.mm-nomination__header {
+  width: min(240px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 140px;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), max-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-nomination.is-sent .mm-nomination__header {
+  opacity: 0;
+  transform: translateY(-8px);
+  max-height: 0;
+  pointer-events: none;
+}
+
+.mm-nomination__header .mm-player-row {
+  width: 100%;
+  margin: 0;
+  position: static;
+  left: auto;
+  translate: none;
+}
+
+.mm-nomination__header .mm-candidates-divider {
+  margin: 0;
+}
+
+.mm-nomination__options {
+  width: min(360px, 100%);
+  max-height: 110px;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), max-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 0 10px 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mm-nomination__options.mml-list {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.mm-nomination__options.mml-list > li {
+  flex: 0 0 auto;
+}
+
+.mm-nomination__options.mml-list .mml-player {
+  flex: 0 0 110px;
+}
+
+.mm-nomination__options:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 4px;
+}
+
+.mm-nomination.is-sent .mm-nomination__options {
+  opacity: 0;
+  transform: translateY(-8px);
+  max-height: 0;
+  pointer-events: none;
+}
+
+.mm-nomination__confirm-btn {
+  width: min(240px, 100%);
+  overflow: hidden;
+  max-height: 80px;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), max-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-nomination.is-sent .mm-nomination__confirm-btn {
+  opacity: 0;
+  transform: translateY(-8px);
+  max-height: 0;
+  pointer-events: none;
+}
+
+.mm-nomination__sent {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(232, 240, 255, 0.82);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mm-nomination__sent.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

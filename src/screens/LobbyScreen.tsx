@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import type { FormEvent } from 'react';
+import ActionButton from '../components/ActionButton';
+import PlayerItem from '../components/PlayerItem';
 import type { Player, Room } from '../types';
+import './MastermindMockLobbyScreen.css';
 
 type Props = {
   room: Room;
@@ -33,7 +36,8 @@ const LobbyScreen = ({
   const hasTooManyPlayers = players.length > maxPlayers;
   const you = useMemo(() => players.find((player) => player.clientId === clientId), [clientId, players]);
   const codenameReady = codenameDraft.trim().length >= 2;
-  const hideCodenames = room.status === 'lobby';
+  const codenameIsSaved =
+    codenameReady && (you?.displayName?.trim() ?? '') === codenameDraft.trim() && !updatingCodename;
 
   const handleCodenameSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -41,106 +45,102 @@ const LobbyScreen = ({
     await onUpdateCodename();
   };
 
+  const canStart =
+    isOwner && !starting && players.length >= minPlayers && !hasTooManyPlayers && !missingCodenames;
+
   return (
-    <div className="screen">
-      <header className="section-header">
-        <div>
-          <p className="eyebrow">Room Code</p>
-          <h1 className="room-code">{room.code}</h1>
-          <p className="muted">Share this code with everyone in the room.</p>
+    <div className="mml-frame" aria-label="Lobby">
+      <header className="mml-top">
+        <div className="mml-room">
+          <p className="mml-eyebrow">Room Code</p>
+          <h1 className="mml-code" aria-label={`Room code ${room.code}`}>
+            {room.code}
+          </h1>
+          <p className="mml-muted">Share this code to join the lobby.</p>
         </div>
-        <div className="badge">{room.status === 'lobby' ? 'Lobby' : room.status}</div>
       </header>
 
-      <div className="card">
-        <div className="card-header">
-          <h2>Players ({players.length})</h2>
-          {isOwner ? <span className="pill">You are the Owner</span> : null}
-        </div>
+      <main className="mml-main">
+        <section className="mml-card" aria-label="Players">
+          <form className="mml-grid" aria-label="Lobby controls" onSubmit={handleCodenameSubmit}>
+            <label className="mml-field">
+              <span>Your codename</span>
+              <input
+                type="text"
+                value={codenameDraft}
+                onChange={(event) => onChangeCodename(event.target.value)}
+                placeholder="Choose a codename"
+                minLength={2}
+                required
+                disabled={updatingCodename}
+              />
+            </label>
 
-        <form className="stack" onSubmit={handleCodenameSubmit}>
-          <label className="field">
-            <span>Your codename</span>
-            <input
-              type="text"
-              placeholder="Enter a codename to share with the table"
-              value={codenameDraft}
-              onChange={(e) => onChangeCodename(e.target.value)}
-              minLength={2}
-              required
-            />
-          </label>
-          <div className="card-footer">
-            <div>
-              <p className="muted">
-                Pick something everyone can recognize. You can change it until the game begins.
-              </p>
-              {missingCodenames ? (
-                <p className="error">All players need a codename before the game can start.</p>
-              ) : null}
-            </div>
-            <button type="submit" className="secondary" disabled={!codenameReady || updatingCodename}>
-              {updatingCodename ? 'Saving…' : you?.displayName?.trim() ? 'Update codename' : 'Save codename'}
-            </button>
-          </div>
-        </form>
-
-        <ul className="list">
-          {players.map((player, index) => {
-            const hasCodename = !!player.displayName?.trim();
-            const listTitle = hideCodenames
-              ? `Player ${index + 1}`
-              : player.displayName?.trim() || 'Awaiting codename';
-            const listSubtitle =
-              player.clientId === clientId
-                ? 'This is you'
-                : hasCodename
-                  ? 'Codename ready'
-                  : 'Needs a codename';
-
-            return (
-              <li key={player.id} className="list-row">
-                <div>
-                  <p className="list-title">{listTitle}</p>
-                  <p className="muted">{listSubtitle}</p>
-                </div>
-                <div>
-                  {player.clientId === room.ownerClientId ? <span className="pill">Owner</span> : null}
-                  {!player.displayName?.trim() ? <span className="pill">Set codename</span> : null}
-                </div>
-              </li>
-            );
-          })}
-          {players.length === 0 ? <p className="muted">Waiting for players…</p> : null}
-        </ul>
-
-        {isOwner ? (
-          <div className="stack">
-            <p className="muted">
-              Minimum players: {minPlayers}. Maximum players: {maxPlayers}. Syndicate Agents join the
-              Mastermind as the group grows; at 7+ players, the Mastermind may not know their agents.
-              Everyone must claim a codename here before the game begins.
-            </p>
-            {hasTooManyPlayers ? (
-              <p className="error">Too many players — remove {players.length - maxPlayers} to start.</p>
-            ) : null}
-            {missingCodenames ? (
-              <p className="error">Waiting on codenames for all players.</p>
-            ) : null}
             <button
-              className="primary"
-              disabled={
-                starting || players.length < minPlayers || hasTooManyPlayers || missingCodenames
-              }
-              onClick={onStartGame}
+              type="submit"
+              className={`mml-btn mml-btn--ready ${codenameIsSaved ? 'is-on' : ''}`}
+              disabled={!codenameReady || updatingCodename}
             >
-              {starting ? 'Assigning roles…' : 'Start Game (Assign Roles)'}
+              {updatingCodename ? 'Saving…' : codenameIsSaved ? 'Saved' : 'Save codename'}
             </button>
-          </div>
-        ) : (
-          <p className="muted">Waiting for the Owner to start the game.</p>
-        )}
-      </div>
+          </form>
+
+          {hasTooManyPlayers ? (
+            <p className="mml-alert" role="status">
+              Too many players — remove {players.length - maxPlayers} to start.
+            </p>
+          ) : null}
+
+          {missingCodenames ? (
+            <p className="mml-alert" role="status">
+              Waiting on codenames from all players.
+            </p>
+          ) : null}
+
+          {!isOwner ? (
+            <p className="mml-muted" role="status">
+              Waiting for the Owner to start the game.
+            </p>
+          ) : null}
+
+          <ul className="mml-list" aria-label="Player roster">
+            {players.map((player, index) => {
+              const hasCodename = !!player.displayName?.trim();
+              const title = hasCodename ? player.displayName.trim() : `Player ${index + 1}`;
+              const showReadyRing = hasCodename;
+
+              return (
+                <PlayerItem
+                  key={player.id}
+                  title={title}
+                  isOwner={player.clientId === room.ownerClientId}
+                  isYou={player.clientId === clientId}
+                  showReadyRing={showReadyRing}
+                />
+              );
+            })}
+          </ul>
+        </section>
+      </main>
+
+      <footer className="mml-footer" aria-label="Start controls">
+        <div className="mml-footer__meta">
+          <p className="mml-muted">
+            Min players: {minPlayers}. Max players: {maxPlayers}. Everyone needs a codename.
+          </p>
+        </div>
+        <ActionButton
+          variant="green"
+          kind="lobbyPrimary"
+          disabled={!canStart}
+          onClick={async () => {
+            if (!canStart) return;
+            await onStartGame();
+          }}
+        >
+          {starting ? 'Assigning roles…' : 'Start Game'}
+        </ActionButton>
+      </footer>
     </div>
   );
 };

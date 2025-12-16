@@ -5,6 +5,8 @@ import RoomScreen from './screens/RoomScreen';
 import { useClientId } from './hooks/useClientId';
 import { ClientIdProvider } from './contexts/ClientContext';
 import LocalPreviewScreen from './screens/LocalPreviewScreen';
+import MastermindMockScreen from './screens/MastermindMockScreen';
+import MastermindMockLobbyScreen from './screens/MastermindMockLobbyScreen';
 
 const App = () => {
   const clientId = useClientId();
@@ -22,9 +24,13 @@ const App = () => {
     <ClientIdProvider clientId={clientId}>
       <Routes>
         <Route path="/" element={<HomeScreen />} />
-        <Route path="/rooms/:roomId" element={<RoomScreen />} />
+            <Route path="/rooms/:roomId" element={<RoomScreen />} />
         {enableLocalPreview ? (
-          <Route path="/local-preview" element={<LocalPreviewScreen />} />
+          <>
+            <Route path="/local-preview" element={<LocalPreviewScreen />} />
+            <Route path="/ui-mock" element={<MastermindMockScreen />} />
+            <Route path="/ui-mock-lobby" element={<MastermindMockLobbyScreen />} />
+          </>
         ) : null}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

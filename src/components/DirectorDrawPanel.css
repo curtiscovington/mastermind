@@ -1,0 +1,27 @@
+.mm-draw {
+  width: min(320px, 100%);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  z-index: 1;
+}
+
+.mm-draw__header {
+  width: min(240px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.mm-draw__header .mm-player-row {
+  width: 100%;
+  margin: 0;
+  position: static;
+  left: auto;
+  translate: none;
+}
+
+.mm-draw__header .mm-candidates-divider {
+  margin: 0;
+}
+

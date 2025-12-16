@@ -1,92 +1,81 @@
+import { useMemo, useState } from 'react';
 import type { Player, Room } from '../types';
+import Ring from '../components/Ring';
+import GameWonPanel from '../components/GameWonPanel';
+import PlayersNotice from '../components/PlayersNotice';
+import PolicyTracks from '../components/PolicyTracks';
+import './MastermindMockScreen.css';
+
+const iconForRole = (player: Player) => {
+  if (player.role === 'mastermind') return 'fas fa-chess-king';
+  if (player.role === 'syndicate_agent') return 'fas fa-user-secret';
+  return 'fas fa-user';
+};
 
 const ResultsScreen = ({ room, players }: { room: Room; players: Player[] }) => {
+  const [playersOpen, setPlayersOpen] = useState(false);
+
   const syndicateEnacted = room.syndicatePoliciesEnacted ?? 0;
   const agencyEnacted = room.agencyPoliciesEnacted ?? 0;
-  const survivingPlayers = players.filter((player) => player.alive);
-  const eliminatedPlayers = players.filter((player) => !player.alive);
+  const winner = agencyEnacted >= 5 ? 'agency' : 'syndicate';
+
+  const mastermindName = useMemo(
+    () => players.find((player) => player.role === 'mastermind')?.displayName ?? undefined,
+    [players],
+  );
+  const syndicateMembers = useMemo(
+    () => players.filter((player) => player.role === 'syndicate_agent').map((player) => player.displayName),
+    [players],
+  );
+
+  const playerList = useMemo(
+    () =>
+      players.map((player) => ({
+        id: player.id,
+        name: player.displayName || 'Unknown',
+        iconClassName: iconForRole(player),
+      })),
+    [players],
+  );
 
   return (
-    <div className="screen">
-      <header className="section-header">
-        <div>
-          <p className="eyebrow">Room {room.code}</p>
-          <h1>Game finished</h1>
-          <p className="muted">Review the outcome and restart if you want another round.</p>
+    <div className="mm-frame" aria-label={`Game results for room ${room.code}`}>
+      <header className="mm-top" aria-label="Results actions">
+        <div className="mm-top-actions">
+          <button
+            type="button"
+            className="mm-icon-btn"
+            aria-label="Show players"
+            onClick={() => setPlayersOpen(true)}
+          >
+            <i className="fas fa-users" aria-hidden />
+          </button>
+
+          <PlayersNotice open={playersOpen} onDismiss={() => setPlayersOpen(false)} players={playerList} />
         </div>
-        <div className="badge">Finished</div>
       </header>
 
-      <div className="card">
-        <div className="card-header">
-          <h2>Policy Summary</h2>
-          <span className="pill neutral">Round {room.round}</span>
-        </div>
-        <ul className="list">
-          <li className="list-row">
-            <div>
-              <p className="list-title">Syndicate Policies Enacted</p>
-              <p className="muted">Progress toward Mastermind victory.</p>
-            </div>
-            <span className="pill danger">{syndicateEnacted} / 6</span>
-          </li>
-          <li className="list-row">
-            <div>
-              <p className="list-title">Agency Policies Enacted</p>
-              <p className="muted">Progress toward Agency victory.</p>
-            </div>
-            <span className="pill success">{agencyEnacted} / 6</span>
-          </li>
-        </ul>
-      </div>
+      <main className="mm-dashboard" aria-label="Outcome">
+        <Ring>
+          {winner === 'agency' ? (
+            <GameWonPanel winner="agency" reason="policy" />
+          ) : (
+            <GameWonPanel winner="syndicate" reason="policy" mastermindName={mastermindName} syndicateMembers={syndicateMembers} />
+          )}
+        </Ring>
+      </main>
 
-      <div className="card">
-        <div className="card-header">
-          <h2>Players</h2>
-          <span className="pill neutral">Status at end</span>
-        </div>
-        <div className="card-grid">
-          <div className="stack">
-            <p className="muted">Survivors</p>
-            {survivingPlayers.length ? (
-              <ul className="list">
-                {survivingPlayers.map((player) => (
-                  <li key={player.id} className="list-row">
-                    <div>
-                      <p className="list-title">{player.displayName}</p>
-                      <p className="muted">{player.role ?? 'Unknown role'}</p>
-                    </div>
-                    <span className="pill success">Alive</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted">No survivors this round.</p>
-            )}
-          </div>
-
-          <div className="stack">
-            <p className="muted">Eliminated</p>
-            {eliminatedPlayers.length ? (
-              <ul className="list">
-                {eliminatedPlayers.map((player) => (
-                  <li key={player.id} className="list-row">
-                    <div>
-                      <p className="list-title">{player.displayName}</p>
-                      <p className="muted">{player.role ?? 'Unknown role'}</p>
-                    </div>
-                    <span className="pill danger">Eliminated</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted">No one was eliminated.</p>
-            )}
-          </div>
-        </div>
-      </div>
+      <footer className="mm-bottom" aria-label="Final policy tracks">
+        <PolicyTracks
+          tracks={[
+            { team: 'agency', total: 5, filled: agencyEnacted },
+            { team: 'syndicate', total: 6, filled: syndicateEnacted },
+          ]}
+        />
+      </footer>
     </div>
   );
 };
 
 export default ResultsScreen;
+

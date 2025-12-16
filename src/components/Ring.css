@@ -1,0 +1,60 @@
+.mm-ring {
+  position: relative;
+  width: min(400px, 92vw);
+  height: min(400px, 92vw);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+}
+
+.mm-ring--clip {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.mm-ring__bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  border-left: 4px solid var(--mm-neon-blue, #00f2ff);
+  border-right: 4px solid var(--mm-neon-red, #ff3333);
+  box-shadow: -5px 0 15px rgba(0, 242, 255, 0.2), 5px 0 15px rgba(255, 51, 51, 0.2);
+  animation: mm-ring-rotate 28s linear infinite, mm-ring-glow 6.5s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: center;
+}
+
+@keyframes mm-ring-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mm-ring-glow {
+  0%,
+  100% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 8px rgba(0, 242, 255, 0.12))
+      drop-shadow(0 0 10px rgba(255, 51, 51, 0.1));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(0, 242, 255, 0.22))
+      drop-shadow(0 0 16px rgba(255, 51, 51, 0.18));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-ring__bg {
+    animation: none;
+  }
+}

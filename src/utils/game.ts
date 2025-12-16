@@ -92,17 +92,35 @@ export const drawPolicyCards = (
   return { drawn, deck: remainingDeck, discard: availableDiscard };
 };
 
-const syndicatePowerThresholds: Record<SyndicatePower, number> = {
-  investigate: 1,
-  surveillance: 2,
-  special_election: 3,
-  purge: 4,
+export const getSyndicatePowerThresholds = (playerCount: number): Record<SyndicatePower, number> => {
+  // Based on the rulebook: Investigation happens after 1 or 2 syndicate policies depending on player count.
+  // For larger groups we delay the first power to the 2nd enacted policy and shift the rest accordingly.
+  const isLargeGroup = playerCount >= 7;
+  return {
+    investigate: isLargeGroup ? 2 : 1,
+    surveillance: isLargeGroup ? 3 : 2,
+    special_election: isLargeGroup ? 4 : 3,
+    purge: isLargeGroup ? 5 : 4,
+  };
 };
 
-export const getUnlockedSyndicatePowers = (enactedCount: number): SyndicatePower[] =>
-  (Object.entries(syndicatePowerThresholds) as [SyndicatePower, number][]) // explicit typing for TS
+export const getUnlockedSyndicatePowers = (enactedCount: number, playerCount = 6): SyndicatePower[] => {
+  const thresholds = getSyndicatePowerThresholds(playerCount);
+  return (Object.entries(thresholds) as [SyndicatePower, number][]) // explicit typing for TS
     .filter(([, threshold]) => enactedCount >= threshold)
     .map(([power]) => power);
+};
+
+export const getSyndicatePowerForPolicySlot = (
+  syndicatePoliciesEnacted: number,
+  playerCount = 6,
+): SyndicatePower | null => {
+  const thresholds = getSyndicatePowerThresholds(playerCount);
+  const match = (Object.entries(thresholds) as [SyndicatePower, number][]).find(
+    ([, threshold]) => threshold === syndicatePoliciesEnacted,
+  );
+  return match?.[0] ?? null;
+};
 
 type PlayerAssignment = { playerId: string; role: Role; team: Team; knownTeammateIds: string[] };
 
