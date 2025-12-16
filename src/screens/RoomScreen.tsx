@@ -11,7 +11,7 @@ import ResultsScreen from './ResultsScreen';
 import ActionButton from '../components/ActionButton';
 import NominationRejectedPanel from '../components/NominationRejectedPanel';
 import Ring from '../components/Ring';
-import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers } from '../utils/game';
+import { assignRolesToPlayers, buildPolicyDeck, drawPolicyCards, getUnlockedSyndicatePowers, shuffle } from '../utils/game';
 import type { Player, PolicyCard, Room, SyndicatePower, Team, VoteChoice } from '../types';
 import './MastermindMockScreen.css';
 
@@ -86,6 +86,8 @@ const prepareNextNominationUpdates = (roomData: Room, roster: Player[]): Record<
     previousDirectorId,
     voteTallies: {},
     investigationResults: {},
+    surveillancePeek: [],
+    surveillancePeekPending: false,
     instabilityCount: 0,
     autoEnactment: false,
     directorHand: [],
@@ -189,6 +191,7 @@ const ActiveStage = ({
       playerId: string,
     ) => Promise<{ playerId: string; team: Team | null } | null>;
     onUseSurveillance: () => Promise<void>;
+    onAcknowledgeSurveillance: () => Promise<void>;
     onSpecialElection: (directorId: string) => Promise<void>;
     onPurgePlayer: (playerId: string) => Promise<void>;
   };
@@ -205,6 +208,7 @@ const ActiveStage = ({
     onAutoEnactPolicy={handlers.onAutoEnactPolicy}
     onInvestigatePlayer={handlers.onInvestigatePlayer}
     onUseSurveillance={handlers.onUseSurveillance}
+    onAcknowledgeSurveillance={handlers.onAcknowledgeSurveillance}
     onSpecialElection={handlers.onSpecialElection}
     onPurgePlayer={handlers.onPurgePlayer}
     busyAction={busyAction}
@@ -297,6 +301,7 @@ const RoomScreen = () => {
         syndicatePowersResolved: [],
         investigationResults: {},
         surveillancePeek: [],
+        surveillancePeekPending: false,
         specialElectionDirectorId: null,
         updatedAt: serverTimestamp(),
       });
@@ -669,14 +674,59 @@ const RoomScreen = () => {
 
         if (!unlockedPowers.includes('surveillance') || resolvedPowers.includes('surveillance')) return;
 
-        const deck = (roomData.policyDeck ?? []) as PolicyCard[];
-        const discard = (roomData.policyDiscard ?? []) as PolicyCard[];
-        const availableDeck = deck.length >= 3 ? deck : [...deck, ...discard];
-        const peek = availableDeck.slice(0, 3);
+        let deck = (roomData.policyDeck ?? []) as PolicyCard[];
+        let discard = (roomData.policyDiscard ?? []) as PolicyCard[];
+
+        if (deck.length < 3) {
+          deck = shuffle([...deck, ...discard]);
+          discard = [];
+        }
+
+        const peek = deck.slice(0, 3);
         const updatedResolved = Array.from(new Set<SyndicatePower>([...resolvedPowers, 'surveillance']));
 
         const updates: Record<string, unknown> = {
+          policyDeck: deck,
+          policyDiscard: discard,
           surveillancePeek: peek,
+          surveillancePeekPending: true,
+          syndicatePowersResolved: updatedResolved,
+          updatedAt: serverTimestamp(),
+        };
+
+        transaction.update(roomRef, updates);
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleAcknowledgeSurveillance = async () => {
+    if (!room || !you || you.id !== room.directorId || room.phase !== 'enactment' || isFinished)
+      return;
+    setBusy('surveillance-ack');
+
+    try {
+      const roomRef = doc(db, 'rooms', room.id);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(roomRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Room not found');
+        }
+
+        const roomData = snapshot.data() as Room;
+        if (!roomData.surveillancePeekPending) return;
+
+        const resolvedPowers = (roomData.syndicatePowersResolved ?? []) as SyndicatePower[];
+        const updatedResolved = Array.from(new Set<SyndicatePower>(resolvedPowers));
+
+        const updates: Record<string, unknown> = {
+          surveillancePeek: [],
+          surveillancePeekPending: false,
           syndicatePowersResolved: updatedResolved,
           updatedAt: serverTimestamp(),
         };
@@ -891,6 +941,7 @@ const RoomScreen = () => {
     onAutoEnactPolicy: handleAutoEnactPolicy,
     onInvestigatePlayer: handleInvestigatePlayer,
     onUseSurveillance: handleSurveillance,
+    onAcknowledgeSurveillance: handleAcknowledgeSurveillance,
     onSpecialElection: handleSpecialElection,
     onPurgePlayer: handlePurgePlayer,
   };

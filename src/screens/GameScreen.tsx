@@ -17,6 +17,7 @@ import ActionWaitingPanel from '../components/ActionWaitingPanel';
 import DirectorDrawPanel from '../components/DirectorDrawPanel';
 import AutoEnactmentPanel from '../components/AutoEnactmentPanel';
 import InvestigationNotice from '../components/InvestigationNotice';
+import SurveillancePeekPanel from '../components/SurveillancePeekPanel';
 import './MastermindMockScreen.css';
 
 type Props = {
@@ -33,6 +34,7 @@ type Props = {
     playerId: string,
   ) => Promise<{ playerId: string; team: Team | null } | null>;
   onUseSurveillance: () => Promise<void>;
+  onAcknowledgeSurveillance: () => Promise<void>;
   onSpecialElection: (directorId: string) => Promise<void>;
   onPurgePlayer: (playerId: string) => Promise<void>;
   busyAction: string | null;
@@ -64,6 +66,7 @@ const GameScreen = ({
   onAutoEnactPolicy,
   onInvestigatePlayer,
   onUseSurveillance,
+  onAcknowledgeSurveillance,
   onSpecialElection,
   onPurgePlayer,
   busyAction,
@@ -257,6 +260,24 @@ const GameScreen = ({
           onEnact={() => void onAutoEnactPolicy()}
         />
       );
+    } else if (room.surveillancePeekPending) {
+      if (isDirector && you?.alive) {
+        centerPanel = (
+          <SurveillancePeekPanel
+            key={`${room.round}-surveillance`}
+            directorName={directorName}
+            policies={room.surveillancePeek ?? []}
+            disabled={busyAction === 'surveillance-ack'}
+            onAcknowledge={() => {
+              void onAcknowledgeSurveillance();
+            }}
+          />
+        );
+      } else {
+        centerPanel = (
+          <ActionWaitingPanel role="director" name={directorName} message="Waiting for Director to acknowledge…" />
+        );
+      }
     } else if (shouldShowPowers && pendingPower) {
       if (canUsePowers) {
         centerPanel = (
