@@ -26,27 +26,29 @@ body {
 }
 
 .room-shell {
+  width: 100%;
   position: relative;
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
   justify-items: center;
-  padding: 2rem clamp(1rem, 4vw, 2.5rem) 2.5rem;
+  /* padding: 2rem clamp(1rem, 4vw, 2.5rem) 2.5rem; */
   overflow: hidden;
   isolation: isolate;
+  background: radial-gradient(circle at center, #0f1c30 0%, #02050a 100%);
 }
 
 .room-shell::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(95, 237, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91, 172, 255, 0.08) 1px, transparent 1px);
-  background-size: 110px 110px;
+  background-image: linear-gradient(rgba(0, 242, 255, 0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 255, 0.055) 1px, transparent 1px);
+  background-size: 120px 120px;
   transform: translate3d(0, 0, 0);
-  animation: grid-pan 28s linear infinite;
-  opacity: 0.85;
+  animation: grid-pan 34s linear infinite;
+  opacity: 0.55;
   mix-blend-mode: screen;
   pointer-events: none;
   z-index: -2;
@@ -56,13 +58,18 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(60% 70% at 50% 20%, rgba(0, 168, 255, 0.25), transparent 55%),
-    radial-gradient(40% 45% at 20% 85%, rgba(236, 72, 153, 0.3), transparent 60%),
-    radial-gradient(40% 50% at 80% 70%, rgba(45, 205, 255, 0.28), transparent 60%),
-    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(50% 60% at 30% 20%, rgba(0, 242, 255, 0.18), transparent 62%),
+    radial-gradient(45% 55% at 78% 68%, rgba(255, 51, 51, 0.14), transparent 64%),
+    radial-gradient(65% 70% at 50% 35%, rgba(19, 34, 58, 0.75), transparent 68%),
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.68), transparent 72%);
+  filter: blur(12px);
   pointer-events: none;
   z-index: -3;
+}
+
+.room-shell .mm-frame,
+.room-shell .mml-frame {
+  background: transparent;
 }
 
 .screen {

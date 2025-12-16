@@ -1,7 +1,7 @@
 .mm-ring {
   position: relative;
-  width: min(400px, 92vw);
-  height: min(400px, 92vw);
+  width: min(400px, 100%);
+  height: min(400px, 100%);
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   display: flex;
