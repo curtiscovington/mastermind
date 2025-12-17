@@ -10,6 +10,7 @@
   align-items: center;
   gap: 16px;
   padding: 18px;
+  z-index: 99;
 }
 
 .mm-ring::before {
@@ -23,7 +24,7 @@
 }
 
 .mm-ring__bg {
-  z-index: 1;
+  z-index: 99;
 }
 
 .mm-ring > :not(.mm-ring__bg) {

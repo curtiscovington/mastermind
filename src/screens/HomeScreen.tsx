@@ -125,7 +125,6 @@ const HomeScreen = () => {
     <div className="mm-frame home-frame" aria-label="Mastermind home">
       <header className="mm-top home-top">
         <div className="home-title">
-          <p className="home-eyebrow">Social deduction for your crew</p>
           <h1>Mastermind</h1>
           <p className="home-subtitle">
             Patch into the lobby console to join an operation or deploy a new room.
@@ -149,16 +148,11 @@ const HomeScreen = () => {
       <main className="mm-dashboard home-dashboard" aria-label="Lobby console">
         <Ring className="home-ring" showBackground clipContent>
           <div className="home-console">
-            <p className="home-console__eyebrow">Lobby console</p>
+          
             <h2>Join or deploy</h2>
-            <p className="home-console__hint">
-              Enter your room code to dock with the crew, or spin up a fresh lobby directly from the
-              ring.
-            </p>
 
             <form className="home-form" onSubmit={handleJoinRoom}>
               <label className="mml-field home-field">
-                <span>Room code</span>
                 <input
                   type="text"
                   placeholder="ABC123"
