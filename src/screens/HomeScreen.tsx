@@ -121,52 +121,64 @@ const HomeScreen = () => {
     <div className="screen home-screen">
       <header className="home-header">
         <div>
+          <p className="eyebrow">Social deduction for your crew</p>
           <h1>Mastermind</h1>
-          <p className="home-intro">Join with a code or host a lobby for your crew.</p>
+          <p className="home-intro">Patch into the lobby console to jump into the action.</p>
         </div>
       </header>
 
-      <form className="home-panel" onSubmit={handleJoinRoom}>
-        <div className="home-panel__head">
+      <div className="home-ring-shell">
+        <div className="home-ring home-ring--outer" aria-hidden />
+        <div className="home-ring home-ring--mid" aria-hidden />
+        <div className="home-ring home-ring--inner" aria-hidden />
+        <div className="home-ring__pulse" aria-hidden />
+        <div className="home-console">
           <div>
-            <h2>Jump into a lobby</h2>
+            <p className="eyebrow">Lobby console</p>
+            <h2>Join or deploy</h2>
             <p className="home-panel__hint">
-              Enter a room code to join your crew or spin up a new lobby in one click. You&apos;ll set a codename in the lobby.
+              Enter your room code to dock with the crew, or spin up a fresh lobby right from the
+              ring.
             </p>
           </div>
-        </div>
 
-        <div className="home-fields">
-          <label className="field">
-            <span>Room code</span>
-            <input
-              type="text"
-              placeholder="ABC123"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              required
-              minLength={4}
-              maxLength={6}
-            />
-          </label>
-        </div>
+          <form className="home-console__form" onSubmit={handleJoinRoom}>
+            <label className="field home-console__field">
+              <span>Room code</span>
+              <input
+                type="text"
+                placeholder="ABC123"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                required
+                minLength={4}
+                maxLength={6}
+              />
+            </label>
 
-        <div className="home-panel__actions">
-          <button
-            type="submit"
-            className="primary"
-            disabled={loading || joinCode.trim().length < 4}
-          >
-            {loading ? 'Working…' : 'Join'}
-          </button>
-          <span className="home-panel__or">or</span>
-          <button type="button" className="secondary" onClick={handleCreateRoom} disabled={loading}>
-            {loading ? 'Working…' : 'Create room'}
-          </button>
-        </div>
-      </form>
+            <div className="home-panel__actions home-console__actions">
+              <button
+                type="submit"
+                className="primary"
+                disabled={loading || joinCode.trim().length < 4}
+              >
+                {loading ? 'Working…' : 'Join lobby'}
+              </button>
+              <span className="home-panel__or">or</span>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleCreateRoom}
+                disabled={loading}
+              >
+                {loading ? 'Working…' : 'Create room'}
+              </button>
+            </div>
 
-      {error ? <p className="error home-error">{error}</p> : null}
+            {error ? <p className="error home-error">{error}</p> : null}
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
