@@ -1,0 +1,140 @@
+.home-frame {
+  padding: calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  gap: 18px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.home-top {
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+}
+
+.home-title h1 {
+  margin: 6px 0 4px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: clamp(32px, 5vw, 42px);
+  text-shadow: 0 0 14px rgba(0, 242, 255, 0.35);
+}
+
+.home-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(204, 220, 255, 0.76);
+}
+
+.home-subtitle {
+  margin: 0;
+  color: rgba(232, 240, 255, 0.76);
+  font-size: 15px;
+}
+
+.home-meta {
+  margin: 6px auto 0;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(42, 59, 85, 0.85);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.home-meta dt {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(204, 220, 255, 0.72);
+}
+
+.home-meta dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.home-dashboard {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.home-ring {
+  width: min(460px, 100%);
+  height: min(460px, 100%);
+  --mm-panel-bg: rgba(8, 16, 30, 0.92);
+}
+
+.home-console {
+  width: 100%;
+  padding: 20px 18px 18px;
+  box-sizing: border-box;
+  background: linear-gradient(160deg, rgba(16, 26, 48, 0.92), rgba(10, 16, 30, 0.96));
+  border: 1px solid rgba(42, 59, 85, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32), 0 0 22px rgba(0, 242, 255, 0.12);
+  text-align: center;
+  display: grid;
+  gap: 10px;
+}
+
+.home-console h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-console__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(204, 220, 255, 0.7);
+}
+
+.home-console__hint {
+  margin: 0;
+  color: rgba(198, 214, 240, 0.8);
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.home-form {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.home-field input {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  text-align: center;
+  font-weight: 700;
+}
+
+.home-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.home-error {
+  margin: 0;
+  color: var(--mm-neon-red, #ff3333);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.35);
+}
+
+@media (min-width: 640px) {
+  .home-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}

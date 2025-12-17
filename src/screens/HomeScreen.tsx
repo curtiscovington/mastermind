@@ -14,6 +14,10 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useClientIdContext } from '../contexts/ClientContext';
 import { generateRoomCode } from '../utils/game';
+import Ring from '../components/Ring';
+import ActionButton from '../components/ActionButton';
+import './MastermindMockScreen.css';
+import './HomeScreen.css';
 
 const MIN_PLAYERS = 5;
 const MAX_PLAYERS = 10;
@@ -118,67 +122,68 @@ const HomeScreen = () => {
   };
 
   return (
-    <div className="screen home-screen">
-      <header className="home-header">
-        <div>
-          <p className="eyebrow">Social deduction for your crew</p>
+    <div className="mm-frame home-frame" aria-label="Mastermind home">
+      <header className="mm-top home-top">
+        <div className="home-title">
+          <p className="home-eyebrow">Social deduction for your crew</p>
           <h1>Mastermind</h1>
-          <p className="home-intro">Patch into the lobby console to jump into the action.</p>
+          <p className="home-subtitle">
+            Patch into the lobby console to join an operation or deploy a new room.
+          </p>
         </div>
+
+        <dl className="home-meta" aria-label="Lobby settings">
+          <div>
+            <dt>Players</dt>
+            <dd>
+              {MIN_PLAYERS}–{MAX_PLAYERS}
+            </dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>Lobby ready</dd>
+          </div>
+        </dl>
       </header>
 
-      <div className="home-ring-shell">
-        <div className="home-ring home-ring--outer" aria-hidden />
-        <div className="home-ring home-ring--mid" aria-hidden />
-        <div className="home-ring home-ring--inner" aria-hidden />
-        <div className="home-ring__pulse" aria-hidden />
-        <div className="home-console">
-          <div>
-            <p className="eyebrow">Lobby console</p>
+      <main className="mm-dashboard home-dashboard" aria-label="Lobby console">
+        <Ring className="home-ring" showBackground clipContent>
+          <div className="home-console">
+            <p className="home-console__eyebrow">Lobby console</p>
             <h2>Join or deploy</h2>
-            <p className="home-panel__hint">
-              Enter your room code to dock with the crew, or spin up a fresh lobby right from the
+            <p className="home-console__hint">
+              Enter your room code to dock with the crew, or spin up a fresh lobby directly from the
               ring.
             </p>
+
+            <form className="home-form" onSubmit={handleJoinRoom}>
+              <label className="mml-field home-field">
+                <span>Room code</span>
+                <input
+                  type="text"
+                  placeholder="ABC123"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  required
+                  minLength={4}
+                  maxLength={6}
+                />
+              </label>
+
+              {error ? <p className="home-error">{error}</p> : null}
+
+              <div className="home-actions">
+                <ActionButton variant="green" type="submit" disabled={loading || joinCode.trim().length < 4}>
+                  {loading ? 'Working…' : 'Join lobby'}
+                </ActionButton>
+                <ActionButton variant="red" type="button" onClick={handleCreateRoom} disabled={loading}>
+                  {loading ? 'Working…' : 'Create room'}
+                </ActionButton>
+              </div>
+            </form>
           </div>
-
-          <form className="home-console__form" onSubmit={handleJoinRoom}>
-            <label className="field home-console__field">
-              <span>Room code</span>
-              <input
-                type="text"
-                placeholder="ABC123"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                required
-                minLength={4}
-                maxLength={6}
-              />
-            </label>
-
-            <div className="home-panel__actions home-console__actions">
-              <button
-                type="submit"
-                className="primary"
-                disabled={loading || joinCode.trim().length < 4}
-              >
-                {loading ? 'Working…' : 'Join lobby'}
-              </button>
-              <span className="home-panel__or">or</span>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleCreateRoom}
-                disabled={loading}
-              >
-                {loading ? 'Working…' : 'Create room'}
-              </button>
-            </div>
-
-            {error ? <p className="error home-error">{error}</p> : null}
-          </form>
-        </div>
-      </div>
+        </Ring>
+      </main>
     </div>
   );
 };
