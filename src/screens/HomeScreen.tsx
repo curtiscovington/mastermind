@@ -176,6 +176,9 @@ const HomeScreen = () => {
                 <ActionButton variant="green" type="submit" disabled={loading || joinCode.trim().length < 4}>
                   {loading ? 'Working…' : 'Join lobby'}
                 </ActionButton>
+                <span className="home-actions__or" aria-hidden>
+                  or
+                </span>
                 <ActionButton variant="red" type="button" onClick={handleCreateRoom} disabled={loading}>
                   {loading ? 'Working…' : 'Create room'}
                 </ActionButton>
