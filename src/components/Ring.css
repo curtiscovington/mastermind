@@ -25,6 +25,7 @@
 
 .mm-ring__bg {
   z-index: 99;
+  pointer-events: none;
 }
 
 .mm-ring > :not(.mm-ring__bg) {
