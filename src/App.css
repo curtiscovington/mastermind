@@ -284,6 +284,25 @@ body {
   min-width: 150px;
 }
 
+.home-actions {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+  margin-top: 0.35rem;
+}
+
+.home-actions > button {
+  width: min(240px, 100%);
+}
+
+.home-actions__or {
+  color: #9bb3d9;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .home-console .home-panel__hint {
   margin-left: auto;
   margin-right: auto;

@@ -1,11 +1,11 @@
 {
-  "name": "The Mastermind",
+  "name": "Mastermind",
   "short_name": "Mastermind",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#070c16",
   "theme_color": "#1f8fff",
-  "description": "In-person hidden-role party game.",
+  "description": "hidden-role party game.",
   "icons": [
     {
       "src": "/icons/icon-192.png",

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Mastermind icon">
+  <defs>
+    <radialGradient id="bg" cx="28%" cy="22%" r="80%">
+      <stop offset="0%" stop-color="#0f1d3a" />
+      <stop offset="55%" stop-color="#0a1024" />
+      <stop offset="100%" stop-color="#050813" />
+    </radialGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6fd4ff" />
+      <stop offset="50%" stop-color="#6f5cff" />
+      <stop offset="100%" stop-color="#fc55b7" />
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#182444" />
+      <stop offset="50%" stop-color="#0a1024" />
+      <stop offset="100%" stop-color="#3a1524" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6fd4ff" />
+      <stop offset="100%" stop-color="#a2e3ff" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)" />
+
+  <circle cx="256" cy="256" r="214" fill="none" stroke="url(#ring)" stroke-width="6" opacity="0.7" />
+  <circle cx="256" cy="256" r="198" fill="none" stroke="#1f2a3c" stroke-width="2" opacity="0.7" />
+
+  <path d="M256 110 L362 172 L362 318 L256 402 L150 318 L150 172 Z" fill="url(#shield)" stroke="#223047" stroke-width="4" />
+  <path d="M256 130 L344 186 L344 305 L256 378 L168 305 L168 186 Z" fill="none" stroke="#6cc7ff" stroke-width="2" opacity="0.6" />
+
+  <path d="M188 220 Q256 178 324 220 Q256 262 188 220 Z" fill="url(#accent)" opacity="0.9" />
+  <circle cx="256" cy="220" r="18" fill="#0a1024" stroke="#a2e3ff" stroke-width="3" />
+
+  <path d="M188 332 L188 262 L230 296 L256 252 L282 296 L324 262 L324 332 L300 332 L300 304 L282 332 L256 292 L230 332 L212 304 L212 332 Z" fill="#f7fbff" />
+
+  <path d="M226 168 L256 142 L286 168 L272 176 L256 162 L240 176 Z" fill="#fc55b7" />
+</svg>
