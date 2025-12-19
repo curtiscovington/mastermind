@@ -1,7 +1,7 @@
-# The Mastermind: Tabletop Rulebook
+# Mastermind: Tabletop Rulebook
 
 ## Theme Overview
-The Mastermind casts players as elite operatives in a covert agency trying to expose a hidden Mastermind steering a global syndicate. Two factions compete: the Agency is racing to secure and enact protective protocols, while the Syndicate pushes destabilizing directives to tighten the Mastermind’s grip. Bluffing, deduction, and coordinated leadership are key to survival.
+Mastermind casts players as elite operatives in a covert global agency steering the world towards global stability. However, a hidden faction of Syndicate Agents, loyal to the Mastermind, seeks to subvert the Agency from within, obtaining power through manipulation and clandestine operations. Players must navigate alliances, deception, and strategy to achieve their faction's goals.
 
 ## Roles & Factions
 - **Agency Operatives (Loyalists):** Majority team. Win by enacting Agency policies or eliminating the Mastermind. Know only their own identity.

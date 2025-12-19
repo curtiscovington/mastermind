@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import ActionButton from '../components/ActionButton';
 import PlayerItem from '../components/PlayerItem';
+import Ring from '../components/Ring';
 import type { Player, Room } from '../types';
 import './MastermindMockLobbyScreen.css';
 
@@ -38,11 +39,17 @@ const LobbyScreen = ({
   const codenameReady = codenameDraft.trim().length >= 2;
   const codenameIsSaved =
     codenameReady && (you?.displayName?.trim() ?? '') === codenameDraft.trim() && !updatingCodename;
+  const [showRoster, setShowRoster] = useState(codenameIsSaved);
 
-  const handleCodenameSubmit = async (event: FormEvent) => {
+  useEffect(() => {
+    if (codenameIsSaved) setShowRoster(true);
+  }, [codenameIsSaved]);
+
+  const handleReadySubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!codenameReady || updatingCodename) return;
     await onUpdateCodename();
+    setShowRoster(true);
   };
 
   const canStart =
@@ -61,30 +68,55 @@ const LobbyScreen = ({
       </header>
 
       <main className="mml-main">
-        <section className="mml-card" aria-label="Players">
-          <form className="mml-grid" aria-label="Lobby controls" onSubmit={handleCodenameSubmit}>
-            <label className="mml-field">
-              <span>Your codename</span>
-              <input
-                type="text"
-                value={codenameDraft}
-                onChange={(event) => onChangeCodename(event.target.value)}
-                placeholder="Choose a codename"
-                minLength={2}
-                required
-                disabled={updatingCodename}
-              />
-            </label>
+        <Ring className="mml-lobby-ring" showBackground clipContent>
+          <div className={`mml-lobby-console ${showRoster ? 'is-ready' : ''}`}>
+            <form className="mml-join" onSubmit={handleReadySubmit} aria-hidden={showRoster}>
+              <label className="mml-field">
+                <span className="sr-only">Codename</span>
+                <input
+                  type="text"
+                  placeholder="Choose a codename"
+                  value={codenameDraft}
+                  onChange={(event) => onChangeCodename(event.target.value)}
+                  required
+                  minLength={2}
+                  disabled={updatingCodename}
+                />
+              </label>
 
-            <button
-              type="submit"
-              className={`mml-btn mml-btn--ready ${codenameIsSaved ? 'is-on' : ''}`}
-              disabled={!codenameReady || updatingCodename}
-            >
-              {updatingCodename ? 'Saving…' : codenameIsSaved ? 'Saved' : 'Save codename'}
-            </button>
-          </form>
+              <ActionButton
+                variant="green"
+                kind="lobbyPrimary"
+                type="submit"
+                disabled={!codenameReady || updatingCodename}
+              >
+                Ready
+              </ActionButton>
+            </form>
 
+            <div className="mml-roster" aria-hidden={!showRoster}>
+              <ul className="mml-list mml-roster__list" aria-label="Player roster">
+                {players.map((player, index) => {
+                  const hasCodename = !!player.displayName?.trim();
+                  const title = hasCodename ? player.displayName.trim() : `Player ${index + 1}`;
+                  const showReadyRing = hasCodename;
+
+                  return (
+                    <PlayerItem
+                      key={player.id}
+                      title={title}
+                      isOwner={player.clientId === room.ownerClientId}
+                      isYou={player.clientId === clientId}
+                      showReadyRing={showReadyRing}
+                    />
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </Ring>
+
+        <section className="mml-lobby-status" aria-label="Lobby status">
           {hasTooManyPlayers ? (
             <p className="mml-alert" role="status">
               Too many players — remove {players.length - maxPlayers} to start.
@@ -93,7 +125,7 @@ const LobbyScreen = ({
 
           {missingCodenames ? (
             <p className="mml-alert" role="status">
-              Waiting on codenames from all players.
+              Waiting on codenames from all agents.
             </p>
           ) : null}
 
@@ -102,24 +134,6 @@ const LobbyScreen = ({
               Waiting for the Owner to start the game.
             </p>
           ) : null}
-
-          <ul className="mml-list" aria-label="Player roster">
-            {players.map((player, index) => {
-              const hasCodename = !!player.displayName?.trim();
-              const title = hasCodename ? player.displayName.trim() : `Player ${index + 1}`;
-              const showReadyRing = hasCodename;
-
-              return (
-                <PlayerItem
-                  key={player.id}
-                  title={title}
-                  isOwner={player.clientId === room.ownerClientId}
-                  isYou={player.clientId === clientId}
-                  showReadyRing={showReadyRing}
-                />
-              );
-            })}
-          </ul>
         </section>
       </main>
 
