@@ -81,6 +81,88 @@
   gap: 14px;
 }
 
+.mml-lobby-ring {
+  width: min(420px, 88vw);
+  height: min(420px, 88vw);
+  --mm-panel-bg: rgba(8, 16, 30, 0.9);
+}
+
+.mml-lobby-console {
+  width: 100%;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  position: relative;
+  text-align: center;
+}
+
+.mml-join {
+  grid-area: 1 / 1;
+  display: grid;
+  gap: 12px;
+  width: min(260px, 82%);
+  transition: opacity 220ms ease, transform 240ms ease;
+}
+
+.mml-join .mml-field input {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  text-align: center;
+  font-weight: 600;
+}
+
+.mml-lobby-console.is-ready .mml-join {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.98);
+  pointer-events: none;
+}
+
+.mml-roster {
+  grid-area: 1 / 1;
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 260ms ease 140ms, transform 260ms ease 140ms;
+}
+
+.mml-lobby-console.is-ready .mml-roster {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.mml-lobby-status {
+  display: grid;
+  gap: 10px;
+  padding: 0 4px;
+}
+
+
+.mml-roster__list {
+  justify-content: center;
+  gap: 8px 6px;
+}
+
+.mml-roster__list .mml-player {
+  flex-basis: 76px;
+  padding: 2px 0;
+}
+
+.mml-roster__list .mml-avatar {
+  width: 42px;
+  height: 42px;
+}
+
+.mml-roster__list .mml-player__name {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 4px 7px;
+}
+
 .mml-card {
   border: 1px solid rgba(42, 59, 85, 0.85);
   background: rgba(10, 20, 30, 0.55);
@@ -364,5 +446,10 @@
   .mml-btn--primary::after {
     animation: none;
     opacity: 0;
+  }
+
+  .mml-join,
+  .mml-roster {
+    transition: none;
   }
 }

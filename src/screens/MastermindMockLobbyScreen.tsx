@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import ActionButton from '../components/ActionButton';
 import PlayerItem from '../components/PlayerItem';
+import Ring from '../components/Ring';
 import './MastermindMockLobbyScreen.css';
 
 type MockPlayer = {
@@ -14,7 +15,7 @@ type MockPlayer = {
 
 const MastermindMockLobbyScreen = () => {
   const [codenameDraft, setCodenameDraft] = useState('Agent_K');
-  const [ready, setReady] = useState(true);
+  const [ready, setReady] = useState(false);
 
   const players = useMemo<MockPlayer[]>(
     () => [
@@ -24,6 +25,10 @@ const MastermindMockLobbyScreen = () => {
       { id: 'p4', codename: '', hasCodename: false, isReady: false },
       { id: 'p5', codename: 'Nova_9', hasCodename: true, isReady: true },
       { id: 'p6', codename: 'Echo_3', hasCodename: true, isReady: false },
+      { id: 'p7', codename: 'Glitch_5', hasCodename: true, isReady: true },
+      { id: 'p8', codename: 'Raven_2', hasCodename: true, isReady: true },
+      { id: 'p9', codename: 'Delta_4', hasCodename: true, isReady: false },
+      { id: 'p10', codename: 'Lumen_6', hasCodename: true, isReady: true },
     ],
     [ready],
   );
@@ -49,63 +54,66 @@ const MastermindMockLobbyScreen = () => {
       </header>
 
       <main className="mml-main">
-        <section className="mml-card" aria-label="Players">
-          <div className="mml-grid" aria-label="Lobby controls">
-            <label className="mml-field">
-              <span>Your codename</span>
-              <input
-                type="text"
-                value={codenameDraft}
-                onChange={(event) => setCodenameDraft(event.target.value)}
-                placeholder="Choose a codename"
-                minLength={2}
-              />
-            </label>
-
-            <button
-              type="button"
-              className={`mml-btn mml-btn--ready ${ready ? 'is-on' : ''}`}
-              onClick={() => setReady((value) => !value)}
-              aria-pressed={ready}
+        <Ring className="mml-lobby-ring" showBackground clipContent>
+          <div className={`mml-lobby-console ${ready ? 'is-ready' : ''}`}>
+            <form
+              className="mml-join"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (codenameDraft.trim().length < 2) return;
+                setReady(true);
+              }}
+              aria-hidden={ready}
             >
-              {ready ? 'Ready' : 'Ready up'}
-            </button>
-          </div>
+              <label className="mml-field">
+                <span className="sr-only">Codename</span>
+                <input
+                  type="text"
+                  placeholder="Choose a codename"
+                  value={codenameDraft}
+                  onChange={(event) => setCodenameDraft(event.target.value)}
+                  required
+                  minLength={2}
+                />
+              </label>
 
+              <ActionButton
+                variant="green"
+                kind="lobbyPrimary"
+                type="submit"
+                disabled={codenameDraft.trim().length < 2}
+              >
+                Ready
+              </ActionButton>
+            </form>
+
+            <div className="mml-roster" aria-hidden={!ready}>
+              <ul className="mml-list mml-roster__list" aria-label="Player roster">
+                {players.map((player, index) => {
+                  const title = player.hasCodename ? player.codename : `Player ${index + 1}`;
+                  const showReadyRing = player.hasCodename && player.isReady;
+
+                  return (
+                    <PlayerItem
+                      key={player.id}
+                      title={title}
+                      isOwner={player.isOwner}
+                      isYou={player.isYou}
+                      showReadyRing={showReadyRing}
+                    />
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </Ring>
+
+        <section className="mml-lobby-status" aria-label="Players">
           {missingCodenames ? (
             <p className="mml-alert" role="status">
-              Waiting on codenames from all players.
+              Waiting on codenames from all agents.
             </p>
           ) : null}
-
-          {!everyoneReady ? (
-            <p className="mml-muted" role="status">
-              Everyone must be ready before the game can start.
-            </p>
-          ) : null}
-
-          {ready ? (
-            <ul className="mml-list" aria-label="Player roster">
-              {players.map((player, index) => {
-                const title = player.hasCodename ? player.codename : `Player ${index + 1}`;
-                const showReadyRing = player.hasCodename && player.isReady;
-
-                return (
-                  <PlayerItem
-                    key={player.id}
-                    title={title}
-                    isOwner={player.isOwner}
-                    isYou={player.isYou}
-                    showReadyRing={showReadyRing}
-                  />
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="mml-muted" role="status">
-              Ready up to reveal the roster.
-            </p>
-          )}
         </section>
       </main>
 
