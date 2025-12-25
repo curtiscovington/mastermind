@@ -375,8 +375,8 @@ const RoomScreen = () => {
           Object.entries(updatedTallies).filter(([playerId]) => aliveIds.has(playerId)),
         );
         const approvals = Object.values(filteredTallies).filter((vote) => vote === 'approve').length;
-        const rejections = Object.values(filteredTallies).filter((vote) => vote === 'reject').length;
         const majority = Math.floor(alivePlayers.length / 2) + 1;
+        const allVotesCast = Object.keys(filteredTallies).length >= alivePlayers.length;
 
         const updates: Record<string, unknown> = {
           voteTallies: filteredTallies,
@@ -385,7 +385,7 @@ const RoomScreen = () => {
 
         const syndicateEnacted = roomData.syndicatePoliciesEnacted ?? 0;
 
-        if (approvals >= majority) {
+        if (allVotesCast && approvals >= majority) {
           updates.phase = 'enactment';
           updates.directorId = room.directorCandidateId ?? null;
           updates.deputyId = room.deputyCandidateId ?? null;
@@ -410,10 +410,7 @@ const RoomScreen = () => {
               }
             }
           }
-        } else if (
-          rejections >= majority ||
-          Object.keys(filteredTallies).length >= alivePlayers.length
-        ) {
+        } else if (allVotesCast) {
           const newInstability = (room.instabilityCount ?? 0) + 1;
           const reachedChaos = newInstability >= 3;
           const nextDirectorCandidate = getNextDirectorCandidate(

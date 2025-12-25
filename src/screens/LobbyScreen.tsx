@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import ActionButton from '../components/ActionButton';
 import PlayerItem from '../components/PlayerItem';
@@ -39,17 +39,14 @@ const LobbyScreen = ({
   const codenameReady = codenameDraft.trim().length >= 2;
   const codenameIsSaved =
     codenameReady && (you?.displayName?.trim() ?? '') === codenameDraft.trim() && !updatingCodename;
-  const [showRoster, setShowRoster] = useState(codenameIsSaved);
-
-  useEffect(() => {
-    if (codenameIsSaved) setShowRoster(true);
-  }, [codenameIsSaved]);
+  const [hasShownRoster, setHasShownRoster] = useState(codenameIsSaved);
+  const showRoster = codenameIsSaved || hasShownRoster;
 
   const handleReadySubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!codenameReady || updatingCodename) return;
     await onUpdateCodename();
-    setShowRoster(true);
+    setHasShownRoster(true);
   };
 
   const canStart =
