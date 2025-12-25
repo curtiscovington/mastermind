@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Player, Room, SyndicatePower, Team, VoteChoice } from '../types';
 import { getUnlockedSyndicatePowers } from '../utils/game';
@@ -73,7 +73,6 @@ const GameScreen = ({
   const [playersOpen, setPlayersOpen] = useState(false);
   const [deputySelections, setDeputySelections] = useState<Record<number, string>>({});
   const [drawnRounds, setDrawnRounds] = useState<Record<number, boolean>>({});
-  const [instabilityPulseKey, setInstabilityPulseKey] = useState(0);
   const [investigationReveal, setInvestigationReveal] = useState<{
     targetName: string;
     team: Team | null;
@@ -122,7 +121,6 @@ const GameScreen = ({
   const instability = room.instabilityCount ?? 0;
   const syndicateEnacted = room.syndicatePoliciesEnacted ?? 0;
   const agencyEnacted = room.agencyPoliciesEnacted ?? 0;
-  const previousInstability = useRef(instability);
 
   const directorHand = room.directorHand ?? [];
   const deputyHand = room.deputyHand ?? [];
@@ -139,36 +137,19 @@ const GameScreen = ({
   const shouldShowPowers = Boolean(pendingPower) && room.phase === 'enactment' && !room.autoEnactment;
 
   const selectedDeputyId = deputySelections[room.round] ?? '';
-  const hasDrawnThisRound = drawnRounds[room.round] ?? false;
+  const hasDrawnThisRound = directorHand.length > 0 || (drawnRounds[room.round] ?? false);
+  const instabilityPulseKey = `${room.round}-${instability}`;
 
-  useEffect(() => {
-    if (directorHand.length) {
-      setDrawnRounds((prev) => ({ ...prev, [room.round]: true }));
-    }
-  }, [directorHand.length, room.round]);
+  const playersNoticeList = players.map((player) => {
+    const teammateKnown = Boolean(you?.team === 'syndicate' && you.knownTeammateIds?.includes(player.id));
 
-  useEffect(() => {
-    if (previousInstability.current === instability) return;
-    previousInstability.current = instability;
-    setInstabilityPulseKey((key) => key + 1);
-  }, [instability]);
-
-  const playersNoticeList = useMemo(
-    () =>
-      players.map((player) => {
-        const teammateKnown = Boolean(
-          you?.team === 'syndicate' && you.knownTeammateIds?.includes(player.id),
-        );
-
-        return {
-          id: player.id,
-          name: player.displayName || 'Unknown',
-          iconClassName: iconForPlayer(room, player),
-          tag: teammateKnown ? 'Teammate' : undefined,
-        };
-      }),
-    [players, room, you?.knownTeammateIds, you?.team],
-  );
+    return {
+      id: player.id,
+      name: player.displayName || 'Unknown',
+      iconClassName: iconForPlayer(room, player),
+      tag: teammateKnown ? 'Teammate' : undefined,
+    };
+  });
 
   const powerTargets = useMemo(
     () =>
