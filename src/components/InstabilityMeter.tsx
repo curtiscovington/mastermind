@@ -6,7 +6,7 @@ export type InstabilityMeterProps = {
   max: number;
   label?: string;
   showIcon?: boolean;
-  pulseKey?: number;
+  pulseKey?: number | string;
 } & HTMLAttributes<HTMLElement>;
 
 const clampPct = (value: number) => Math.min(100, Math.max(0, value));
